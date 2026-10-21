@@ -1,0 +1,17 @@
+export { openDatabase, applyMigrations } from './database/database.js';
+export { MemoryEngine } from './memory/engine.js';
+export { buildApp } from './api/app.js';
+export { AccessControlService } from './security/access-control.js';
+export { AuditService } from './security/audit.js';
+export { AuthService } from './security/auth.js';
+export { createLogger } from './logging.js';
+export {
+  ConflictError,
+  DatabaseError,
+  MigrationError,
+  NotFoundError,
+  OmniMemoryError,
+  ValidationError,
+} from './errors.js';
+export type * from './memory/types.js';
+export type * from './security/types.js';
