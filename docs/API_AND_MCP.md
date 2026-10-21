@@ -97,7 +97,35 @@ GET  /api/v1/projects/:projectId/activity
 POST /api/v1/projects/:projectId/activity
 ```
 
-Task and handoff endpoints are deferred because those domain tables do not yet exist.
+Task routes:
+
+```text
+POST  /api/v1/projects/:projectId/tasks
+GET   /api/v1/projects/:projectId/tasks
+GET   /api/v1/projects/:projectId/tasks/:taskId
+PATCH /api/v1/projects/:projectId/tasks/:taskId
+POST  /api/v1/projects/:projectId/tasks/:taskId/transitions
+```
+
+Task creation accepts an optional `Idempotency-Key`. Non-status updates and status transitions require
+`expectedVersion`; status changes are checked against the permitted transition graph and append an
+immutable status-history row. Reader devices may list and retrieve tasks but cannot create, update, or
+transition them.
+
+Handoff routes:
+
+```text
+POST /api/v1/projects/:projectId/handoffs
+GET  /api/v1/projects/:projectId/handoffs
+GET  /api/v1/projects/:projectId/handoffs/:handoffId
+```
+
+Handoffs are immutable. A verified or partially verified handoff must include verified results or
+evidence references. Task, memory, assigned-device, and destination-device references are checked
+against the URL project before a write succeeds.
+
+`GET /api/v1/projects/:projectId/context` includes bounded `recentTasks` and `recentHandoffs` in
+addition to recent memories.
 
 ## MCP status
 
@@ -117,12 +145,27 @@ record_activity
 create_memory
 update_memory
 get_memory_history
+create_task
+list_tasks
+get_task
+update_task
+transition_task
+create_handoff
+list_handoffs
+get_handoff
 ```
 
 All tools require a project ID. Read tools require project read access; activity and memory writes
-require project write access. Memory updates require `expectedVersion`, and memory writes accept an
-optional idempotency key scoped to the authenticated device. Tool arguments are schema-validated,
-limits are bounded, and public tool errors do not expose internal exception details or credentials.
+require project write access. Task and handoff writes also require project write access. Memory and
+task updates require `expectedVersion`; task status changes use `transition_task` and the same
+optimistic protection. Creation and task-transition tools accept optional idempotency keys scoped to
+the authenticated device. Tool arguments are schema-validated, limits are bounded, and public tool
+errors do not expose internal exception details or credentials.
+
+Before beginning work, an agent should call `get_project_context`, `list_tasks`, and any relevant
+memory/history tools. After work, it should update the task with evidence references and call
+`create_handoff` with claims, verified results, blockers, and next steps. Handoff records cannot be
+edited or deleted.
 
 The stdio entry point is:
 

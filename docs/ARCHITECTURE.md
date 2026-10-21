@@ -77,6 +77,28 @@ stdio MCP client
 ```
 
 The MCP server authenticates each tool call with the configured OmniMemory bearer token and applies
-the same project-scoped permissions as the REST API. It exposes only bounded memory and activity
-operations; arbitrary SQL, shell execution, filesystem access, and remote transports are not
-available.
+the same project-scoped permissions as the REST API. It exposes only bounded memory, activity, task,
+and handoff operations; arbitrary SQL, shell execution, filesystem access, and remote transports are
+not available.
+
+## Phase 5 implementation
+
+Phase 5 adds project-scoped coordination records while keeping one database and one authorization
+path:
+
+```text
+REST or local stdio MCP client
+        -> AuthService + AccessControlService
+        -> MemoryEngine + TaskTrackingService
+        -> SQLite migrations 1-4
+```
+
+Tasks use explicit status transitions and optimistic versions. Terminal task states cannot be reopened.
+Handoffs are immutable and distinguish completed claims from evidence-backed verified results. Both
+adapters record successful writes in `security_audit_events`; domain tables retain the durable
+coordination state.
+
+Agents should read the bounded project context before starting work, then create or update the task
+with evidence references as work progresses. When transferring work, they should create an immutable
+handoff that names completed work, verified results, blockers, and recommended next steps. A result
+is not described as verified unless the handoff includes supporting results or evidence references.

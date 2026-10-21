@@ -312,6 +312,242 @@ describe('authenticated REST API', () => {
     expect(afterRevoke.statusCode).toBe(401);
   });
 
+  it('tracks project tasks and evidence-backed handoffs through REST', async () => {
+    const testApp = await createTestApp();
+    const owner = await setupOwner(testApp);
+    const projectResponse = await request(testApp.app, 'POST', '/api/v1/projects', owner.token, {
+      name: 'Task API Project',
+    });
+    const project = projectResponse.json().data as { id: string };
+
+    const createTask = await request(
+      testApp.app,
+      'POST',
+      `/api/v1/projects/${project.id}/tasks`,
+      owner.token,
+      {
+        title: 'Coordinate agents',
+        priority: 'high',
+        evidenceReferences: ['tests/api.test.ts'],
+      },
+      { 'idempotency-key': 'task-create-1' },
+    );
+    expect(createTask.statusCode).toBe(201);
+    const task = createTask.json().data as { id: string; version: number };
+
+    const repeatedTask = await request(
+      testApp.app,
+      'POST',
+      `/api/v1/projects/${project.id}/tasks`,
+      owner.token,
+      {
+        title: 'Coordinate agents',
+        priority: 'high',
+        evidenceReferences: ['tests/api.test.ts'],
+      },
+      { 'idempotency-key': 'task-create-1' },
+    );
+    expect(repeatedTask.statusCode).toBe(201);
+    expect(repeatedTask.json().data.id).toBe(task.id);
+
+    const list = await request(
+      testApp.app,
+      'GET',
+      `/api/v1/projects/${project.id}/tasks?status=todo`,
+      owner.token,
+    );
+    expect(list.statusCode).toBe(200);
+    expect(list.json().data).toHaveLength(1);
+
+    const update = await request(
+      testApp.app,
+      'PATCH',
+      `/api/v1/projects/${project.id}/tasks/${task.id}`,
+      owner.token,
+      { expectedVersion: task.version, title: 'Coordinate authorized agents' },
+      { 'idempotency-key': 'task-update-1' },
+    );
+    expect(update.statusCode).toBe(200);
+    expect(update.json().data.version).toBe(2);
+
+    const start = await request(
+      testApp.app,
+      'POST',
+      `/api/v1/projects/${project.id}/tasks/${task.id}/transitions`,
+      owner.token,
+      { expectedVersion: 2, status: 'in_progress', note: 'Started after reading context.' },
+      { 'idempotency-key': 'task-transition-1' },
+    );
+    expect(start.statusCode).toBe(200);
+    expect(start.json().data.status).toBe('in_progress');
+
+    const handoff = await request(
+      testApp.app,
+      'POST',
+      `/api/v1/projects/${project.id}/handoffs`,
+      owner.token,
+      {
+        taskId: task.id,
+        summary: 'Pass the task to the next agent.',
+        completedWork: ['Created the task tracking flow.'],
+        verifiedResults: ['REST task workflow passed.'],
+        blockers: [],
+        nextSteps: ['Review the MCP workflow.'],
+        evidenceReferences: ['tests/api.test.ts'],
+        verificationStatus: 'verified',
+      },
+      { 'idempotency-key': 'handoff-create-1' },
+    );
+    expect(handoff.statusCode).toBe(201);
+    const handoffRecord = handoff.json().data as { id: string };
+
+    const handoffList = await request(
+      testApp.app,
+      'GET',
+      `/api/v1/projects/${project.id}/handoffs`,
+      owner.token,
+    );
+    expect(handoffList.statusCode).toBe(200);
+    expect(handoffList.json().data).toHaveLength(1);
+
+    const handoffGet = await request(
+      testApp.app,
+      'GET',
+      `/api/v1/projects/${project.id}/handoffs/${handoffRecord.id}`,
+      owner.token,
+    );
+    expect(handoffGet.statusCode).toBe(200);
+
+    const context = await request(
+      testApp.app,
+      'GET',
+      `/api/v1/projects/${project.id}/context?limit=10`,
+      owner.token,
+    );
+    expect(context.statusCode).toBe(200);
+    expect(context.json().data.recentTasks).toHaveLength(1);
+    expect(context.json().data.recentHandoffs).toHaveLength(1);
+
+    const invalidTransition = await request(
+      testApp.app,
+      'POST',
+      `/api/v1/projects/${project.id}/tasks/${task.id}/transitions`,
+      owner.token,
+      { expectedVersion: 3, status: 'cancelled' },
+    );
+    expect(invalidTransition.statusCode).toBe(200);
+
+    const completed = await request(
+      testApp.app,
+      'POST',
+      `/api/v1/projects/${project.id}/tasks/${task.id}/transitions`,
+      owner.token,
+      { expectedVersion: 4, status: 'completed' },
+    );
+    expect(completed.statusCode).toBe(409);
+
+    const secret = 'api_key=synthetic-rest-task-secret';
+    const rejectedSecret = await request(
+      testApp.app,
+      'POST',
+      `/api/v1/projects/${project.id}/tasks`,
+      owner.token,
+      { title: 'Sensitive', description: secret, priority: 'normal' },
+    );
+    expect(rejectedSecret.statusCode).toBe(400);
+    expect(JSON.stringify(rejectedSecret.json())).not.toContain(secret);
+
+    const enrollment = await request(testApp.app, 'POST', '/api/v1/auth/enrollments', owner.token, {
+      deviceName: 'Task Reader',
+      deviceType: 'test',
+    });
+    const claim = await testApp.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/enrollments/claim',
+      payload: { enrollmentToken: enrollment.json().data.code },
+    });
+    const reader = claim.json().data as { token: string; deviceId: string };
+    const grant = await request(
+      testApp.app,
+      'PUT',
+      `/api/v1/devices/${reader.deviceId}/projects/${project.id}`,
+      owner.token,
+      { role: 'reader' },
+    );
+    expect(grant.statusCode).toBe(200);
+
+    const readerGet = await request(
+      testApp.app,
+      'GET',
+      `/api/v1/projects/${project.id}/tasks/${task.id}`,
+      reader.token,
+    );
+    expect(readerGet.statusCode).toBe(200);
+    const readerWrite = await request(
+      testApp.app,
+      'POST',
+      `/api/v1/projects/${project.id}/tasks`,
+      reader.token,
+      { title: 'Reader cannot create', priority: 'normal' },
+    );
+    expect(readerWrite.statusCode).toBe(403);
+
+    const editorGrant = await request(
+      testApp.app,
+      'PUT',
+      `/api/v1/devices/${reader.deviceId}/projects/${project.id}`,
+      owner.token,
+      { role: 'editor' },
+    );
+    expect(editorGrant.statusCode).toBe(200);
+    const editorWrite = await request(
+      testApp.app,
+      'POST',
+      `/api/v1/projects/${project.id}/tasks`,
+      reader.token,
+      { title: 'Editor can create', priority: 'normal' },
+    );
+    expect(editorWrite.statusCode).toBe(201);
+
+    const otherProjectResponse = await request(
+      testApp.app,
+      'POST',
+      '/api/v1/projects',
+      owner.token,
+      {
+        name: 'Other Task Project',
+      },
+    );
+    const otherProject = otherProjectResponse.json().data as { id: string };
+    const otherTaskResponse = await request(
+      testApp.app,
+      'POST',
+      `/api/v1/projects/${otherProject.id}/tasks`,
+      owner.token,
+      { title: 'Private other task', priority: 'normal' },
+    );
+    const otherTask = otherTaskResponse.json().data as { id: string };
+    const crossProject = await request(
+      testApp.app,
+      'GET',
+      `/api/v1/projects/${otherProject.id}/tasks/${otherTask.id}`,
+      reader.token,
+    );
+    expect(crossProject.statusCode).toBe(404);
+
+    const auditActions = testApp.database
+      .prepare('SELECT action FROM security_audit_events ORDER BY sequence')
+      .all() as Array<{ action: string }>;
+    expect(auditActions.map((event) => event.action)).toEqual(
+      expect.arrayContaining([
+        'task_created',
+        'task_updated',
+        'task_transitioned',
+        'handoff_created',
+      ]),
+    );
+  });
+
   it('rejects cross-origin browser requests and applies auth rate limits', async () => {
     const testApp = await createTestApp({ authRateLimitMax: 2 });
     const setupCode = testApp.auth.createSetupCode().code;

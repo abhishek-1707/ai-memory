@@ -7,6 +7,7 @@
 |       1 | `initial_memory_engine`                | Projects, memories, provenance, revisions, FTS5, activity, change log             |
 |       2 | `local_auth_devices_permissions_audit` | Owner setup, devices, sessions, enrollments, project permissions, activity, audit |
 |       3 | `write_idempotency_keys`               | Persistent retry protection for memory writes                                     |
+|       4 | `project_tasks_and_immutable_handoffs` | Project tasks, status history, and immutable agent handoffs                       |
 
 Migrations are applied transactionally at startup. The live SQLite file, WAL file, and shared-memory
 file are local-only and must not be shared over a network.
@@ -45,6 +46,19 @@ The global device role is separate:
 
 These tables are intentionally separate from `activity_events` and `change_log`, which preserve
 memory-domain history and synchronization order respectively.
+
+### Task tracking and handoffs
+
+- `tasks` stores project-scoped work with bounded text, status, priority, assignment, due date,
+  linked memory IDs, evidence references, and an optimistic `version`.
+- `task_status_history` is append-only and records every accepted status transition, including the
+  source and destination status, actor device, note, and resulting task version.
+- `handoffs` stores immutable, structured transfer records. Claims are kept separate from
+  `verified_results`, `evidence_references`, and the explicit verification status.
+
+Task and handoff links are checked by the service before insertion so linked memories and tasks must
+belong to the same project. Assigned and destination devices must be active and authorized for that
+project. Secret-shaped text is rejected before it reaches SQLite.
 
 ### Idempotency
 

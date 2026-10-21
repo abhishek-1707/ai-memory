@@ -28,6 +28,7 @@ import {
   getTaskSchema,
   listHandoffsSchema,
   listTasksSchema,
+  transitionTaskSchema,
   updateTaskSchema,
 } from './validation.js';
 
@@ -214,7 +215,7 @@ export function createMcpServer(options: CreateMcpServerOptions): McpServer {
   server.registerTool(
     'get_project_context',
     {
-      description: 'Retrieve an authorized project and its recent memories.',
+      description: 'Retrieve an authorized project and its recent memories, tasks, and handoffs.',
       inputSchema: projectMemorySchema,
     },
     async (input) =>
@@ -426,6 +427,37 @@ export function createMcpServer(options: CreateMcpServerOptions): McpServer {
         audit.record({
           requestId: `mcp:${identity.sessionId}`,
           action: 'task_updated',
+          outcome: 'allowed',
+          actorDeviceId: identity.deviceId,
+          sessionId: identity.sessionId,
+          projectId: input.projectId,
+          resourceType: 'task',
+          resourceId: task.id,
+        });
+        return task;
+      }),
+  );
+
+  server.registerTool(
+    'transition_task',
+    {
+      description:
+        'Move a task through a permitted status transition with optimistic version protection.',
+      inputSchema: transitionTaskSchema,
+    },
+    async (input) =>
+      run('transition_task', (identity) => {
+        access.requireProjectAccess(identity, input.projectId, 'write');
+        const current = tasks.getTask(input.taskId);
+        assertTaskProject(current.projectId, input.projectId, input.taskId);
+        const task = tasks.transitionTask(input.taskId, {
+          ...input,
+          actorDeviceId: identity.deviceId,
+          idempotencyKey: scopeIdempotencyKey(identity, input.idempotencyKey),
+        });
+        audit.record({
+          requestId: `mcp:${identity.sessionId}`,
+          action: 'task_transitioned',
           outcome: 'allowed',
           actorDeviceId: identity.deviceId,
           sessionId: identity.sessionId,

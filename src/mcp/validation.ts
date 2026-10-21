@@ -34,6 +34,7 @@ const taskPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
 const handoffVerificationStatusSchema = z.enum(['unverified', 'partially_verified', 'verified']);
 const boundedUuidArraySchema = z.array(uuidSchema).max(100);
 const boundedReferenceArraySchema = z.array(z.string().trim().min(1).max(2_000)).max(100);
+const requiredReferenceArraySchema = boundedReferenceArraySchema.min(1);
 const dueDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export const searchMemorySchema = z.object({
@@ -131,6 +132,7 @@ export const updateTaskSchema = z
     dueDate: dueDateSchema.nullable().optional(),
     linkedMemoryIds: boundedUuidArraySchema.optional(),
     evidenceReferences: boundedReferenceArraySchema.optional(),
+    idempotencyKey: idempotencyKeySchema,
   })
   .refine(
     (input) =>
@@ -144,15 +146,24 @@ export const updateTaskSchema = z
     'At least one task field must change',
   );
 
+export const transitionTaskSchema = z.object({
+  projectId: uuidSchema,
+  taskId: uuidSchema,
+  expectedVersion: z.number().int().positive(),
+  status: taskStatusSchema,
+  note: z.string().trim().max(2_000).optional(),
+  idempotencyKey: idempotencyKeySchema,
+});
+
 export const createHandoffSchema = z.object({
   projectId: uuidSchema,
   taskId: uuidSchema.optional(),
   destinationDeviceId: uuidSchema.optional(),
   summary: z.string().trim().min(1).max(10_000),
-  completedWork: boundedReferenceArraySchema,
+  completedWork: requiredReferenceArraySchema,
   verifiedResults: boundedReferenceArraySchema.optional(),
   blockers: boundedReferenceArraySchema.optional(),
-  nextSteps: boundedReferenceArraySchema,
+  nextSteps: requiredReferenceArraySchema,
   evidenceReferences: boundedReferenceArraySchema.optional(),
   linkedMemoryIds: boundedUuidArraySchema.optional(),
   linkedTaskIds: boundedUuidArraySchema.optional(),
@@ -181,6 +192,7 @@ export type CreateTaskArgs = z.infer<typeof createTaskSchema>;
 export type ListTasksArgs = z.infer<typeof listTasksSchema>;
 export type GetTaskArgs = z.infer<typeof getTaskSchema>;
 export type UpdateTaskArgs = z.infer<typeof updateTaskSchema>;
+export type TransitionTaskArgs = z.infer<typeof transitionTaskSchema>;
 export type CreateHandoffArgs = z.infer<typeof createHandoffSchema>;
 export type ListHandoffsArgs = z.infer<typeof listHandoffsSchema>;
 export type GetHandoffArgs = z.infer<typeof getHandoffSchema>;

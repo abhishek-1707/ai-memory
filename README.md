@@ -4,7 +4,8 @@ OmniMemory is a local-first, provider-independent memory engine for authorized A
 Phase 3 adds a localhost-only authenticated REST API, owner setup, device enrollment/revocation,
 project permissions, request validation, rate limiting, audit events, and idempotent memory writes.
 Phase 4 adds a local stdio MCP server that reuses the same authentication, authorization, and memory
-services. Remote MCP access, mobile UI, backups, and provider integrations remain deferred.
+services. Phase 5 adds project-scoped tasks, explicit status transitions, and immutable agent handoffs.
+Remote MCP access, mobile UI, backups, and provider integrations remain deferred.
 
 ## Requirements
 
@@ -55,7 +56,9 @@ Use `POST /api/v1/auth/setup` with the setup code, a password of at least 12 cha
 initial device name/type. The response contains the initial opaque bearer token once. Store it in
 the authorized client; it is never returned again.
 
-The REST contract is documented in `docs/API_AND_MCP.md`.
+The REST contract is documented in `docs/API_AND_MCP.md`. Agents should read project context before
+starting work, update task evidence as they proceed, and record an evidence-backed handoff before
+transferring work.
 
 ## Start the local MCP server
 
@@ -90,10 +93,12 @@ npm test
 npm run demo
 ```
 
-## Scope limits for Phase 3
+## Scope limits for Phase 5
 
 - The REST API is now available on loopback only; it has no remote listener or permissive CORS.
 - The MCP server is available through local stdio only; no remote MCP transport is enabled.
+- Tasks and handoffs are project-scoped; task status transitions are version-protected and handoffs
+  are immutable.
 - No remote networking, SSE, PWA, or provider adapter.
 - No embeddings or external AI API calls.
 - Stored content is treated as untrusted text and is never executed.

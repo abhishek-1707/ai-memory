@@ -14,6 +14,7 @@ const taskPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
 const handoffVerificationStatusSchema = z.enum(['unverified', 'partially_verified', 'verified']);
 const boundedUuidArraySchema = z.array(z.string().uuid()).max(100);
 const boundedReferenceArraySchema = z.array(z.string().trim().min(1).max(2_000)).max(100);
+const requiredReferenceArraySchema = boundedReferenceArraySchema.min(1);
 const dueDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export const setupBodySchema = z.object({
@@ -151,10 +152,10 @@ export const handoffCreateSchema = z.object({
   taskId: z.string().uuid().optional(),
   destinationDeviceId: z.string().uuid().optional(),
   summary: z.string().trim().min(1).max(10_000),
-  completedWork: boundedReferenceArraySchema,
+  completedWork: requiredReferenceArraySchema,
   verifiedResults: boundedReferenceArraySchema.optional(),
   blockers: boundedReferenceArraySchema.optional(),
-  nextSteps: boundedReferenceArraySchema,
+  nextSteps: requiredReferenceArraySchema,
   evidenceReferences: boundedReferenceArraySchema.optional(),
   linkedMemoryIds: boundedUuidArraySchema.optional(),
   linkedTaskIds: boundedUuidArraySchema.optional(),

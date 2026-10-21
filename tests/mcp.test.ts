@@ -45,6 +45,17 @@ interface HistoryPayload {
   readonly version: number;
 }
 
+interface TaskPayload {
+  readonly id: string;
+  readonly version: number;
+  readonly status: string;
+}
+
+interface HandoffPayload {
+  readonly id: string;
+  readonly taskId: string;
+}
+
 const resources: Array<Fixture | Connection> = [];
 
 afterEach(async () => {
@@ -76,6 +87,14 @@ describe('MCP integration', () => {
         'create_memory',
         'update_memory',
         'get_memory_history',
+        'create_task',
+        'list_tasks',
+        'get_task',
+        'update_task',
+        'transition_task',
+        'create_handoff',
+        'list_handoffs',
+        'get_handoff',
       ]),
     );
 
@@ -159,6 +178,120 @@ describe('MCP integration', () => {
     });
     expect(history).toHaveLength(2);
     expect(history[1]?.version).toBe(2);
+  });
+
+  it('completes the authorized task and handoff workflow', async () => {
+    const connection = await connectInMemory(await createFixture());
+    const projectId = connection.fixture.projectId;
+
+    const created = await call<TaskPayload>(connection.client, 'create_task', {
+      projectId,
+      title: 'Coordinate MCP agents',
+      priority: 'high',
+      evidenceReferences: ['tests/mcp.test.ts'],
+      idempotencyKey: 'mcp-task-create-1',
+    });
+    const repeated = await call<TaskPayload>(connection.client, 'create_task', {
+      projectId,
+      title: 'Coordinate MCP agents',
+      priority: 'high',
+      evidenceReferences: ['tests/mcp.test.ts'],
+      idempotencyKey: 'mcp-task-create-1',
+    });
+    expect(repeated.id).toBe(created.id);
+
+    const listed = await call<readonly TaskPayload[]>(connection.client, 'list_tasks', {
+      projectId,
+      status: 'todo',
+      limit: 10,
+    });
+    expect(listed).toHaveLength(1);
+
+    const updated = await call<TaskPayload>(connection.client, 'update_task', {
+      projectId,
+      taskId: created.id,
+      expectedVersion: 1,
+      title: 'Coordinate authorized MCP agents',
+      idempotencyKey: 'mcp-task-update-1',
+    });
+    expect(updated.version).toBe(2);
+
+    const started = await call<TaskPayload>(connection.client, 'transition_task', {
+      projectId,
+      taskId: created.id,
+      expectedVersion: 2,
+      status: 'in_progress',
+      note: 'Started after reading project context.',
+      idempotencyKey: 'mcp-task-transition-1',
+    });
+    expect(started.status).toBe('in_progress');
+
+    const retrieved = await call<TaskPayload>(connection.client, 'get_task', {
+      projectId,
+      taskId: created.id,
+    });
+    expect(retrieved.id).toBe(created.id);
+
+    const handoff = await call<HandoffPayload>(connection.client, 'create_handoff', {
+      projectId,
+      taskId: created.id,
+      summary: 'Pass the task to the next MCP agent.',
+      completedWork: ['Created and started the task.'],
+      verifiedResults: ['MCP task workflow passed.'],
+      blockers: [],
+      nextSteps: ['Complete the task after review.'],
+      evidenceReferences: ['tests/mcp.test.ts'],
+      linkedTaskIds: [created.id],
+      verificationStatus: 'verified',
+      idempotencyKey: 'mcp-handoff-create-1',
+    });
+    expect(handoff.taskId).toBe(created.id);
+
+    const handoffs = await call<readonly HandoffPayload[]>(connection.client, 'list_handoffs', {
+      projectId,
+      limit: 10,
+    });
+    expect(handoffs).toHaveLength(1);
+
+    const handoffById = await call<HandoffPayload>(connection.client, 'get_handoff', {
+      projectId,
+      handoffId: handoff.id,
+    });
+    expect(handoffById.id).toBe(handoff.id);
+
+    const context = await call<{
+      readonly recentTasks: readonly TaskPayload[];
+      readonly recentHandoffs: readonly HandoffPayload[];
+    }>(connection.client, 'get_project_context', { projectId, limit: 10 });
+    expect(context.recentTasks).toHaveLength(1);
+    expect(context.recentHandoffs).toHaveLength(1);
+
+    const stale = await connection.client.callTool({
+      name: 'update_task',
+      arguments: {
+        projectId,
+        taskId: created.id,
+        expectedVersion: 1,
+        description: 'Stale update.',
+      },
+    });
+    expect(stale.isError).toBe(true);
+    expect(readToolPayload(stale)).toEqual({
+      error: { code: 'CONFLICT', message: 'Request conflicts with current state' },
+    });
+
+    const secret = 'api_key=synthetic-mcp-task-secret';
+    const rejectedSecret = await connection.client.callTool({
+      name: 'create_task',
+      arguments: {
+        projectId,
+        title: 'Sensitive task',
+        description: secret,
+        priority: 'normal',
+      },
+    });
+    expect(rejectedSecret.isError).toBe(true);
+    expect(JSON.stringify(rejectedSecret)).not.toContain(secret);
   });
 
   it('rejects stale writes, invalid arguments, secret-shaped content, and unauthorized access', async () => {

@@ -16,8 +16,8 @@ const idempotencyKeySchema = z.string().trim().min(1).max(200).optional();
 const taskStatusSchema = z.enum(['todo', 'in_progress', 'blocked', 'completed', 'cancelled']);
 const prioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
 const verificationStatusSchema = z.enum(['unverified', 'partially_verified', 'verified']);
-const stringArraySchema = z.array(z.string().trim().min(1).max(2_000)).max(100);
-const optionalStringArraySchema = stringArraySchema.optional();
+const stringArraySchema = z.array(z.string().trim().min(1).max(2_000)).min(1).max(100);
+const optionalStringArraySchema = z.array(z.string().trim().min(1).max(2_000)).max(100).optional();
 const dateOnlySchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected a date in YYYY-MM-DD format')

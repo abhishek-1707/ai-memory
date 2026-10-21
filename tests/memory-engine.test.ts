@@ -40,6 +40,7 @@ describe('database migrations', () => {
       { version: 1, name: 'initial_memory_engine' },
       { version: 2, name: 'local_auth_devices_permissions_audit' },
       { version: 3, name: 'write_idempotency_keys' },
+      { version: 4, name: 'project_tasks_and_immutable_handoffs' },
     ]);
     expect(secondRows).toEqual(firstRows);
   });

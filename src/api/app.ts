@@ -469,7 +469,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     access.requireProjectAccess(identity, params.projectId, 'write');
     const current = tasks.getTask(params.taskId);
     assertTaskProject(current.projectId, params.projectId, params.taskId);
-    const task = tasks.updateTask(params.taskId, { ...body, actorDeviceId: identity.deviceId });
+    const task = tasks.updateTask(params.taskId, {
+      ...body,
+      actorDeviceId: identity.deviceId,
+      idempotencyKey: scopedIdempotencyKey(request, identity),
+    });
     audit.record({
       requestId: request.id,
       action: 'task_updated',
@@ -495,6 +499,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       const task = tasks.transitionTask(params.taskId, {
         ...body,
         actorDeviceId: identity.deviceId,
+        idempotencyKey: scopedIdempotencyKey(request, identity),
       });
       audit.record({
         requestId: request.id,
