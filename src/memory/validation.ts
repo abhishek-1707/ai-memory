@@ -149,13 +149,17 @@ export function parseMemoryHistoryInput(input: unknown): MemoryHistoryInput {
   return parse(z.object({ id: uuidSchema }), input, 'Invalid memory history input');
 }
 
-export function assertSafeMemoryText(title: string, content: string): void {
-  const combined = `${title}\n${content}`;
+export function assertSafeText(...values: string[]): void {
+  const combined = values.join('\n');
   if (secretPatterns.some((pattern) => pattern.test(combined))) {
     throw new ValidationError('Memory text appears to contain a secret-shaped value', {
       reason: 'SECRET_DETECTED',
     });
   }
+}
+
+export function assertSafeMemoryText(title: string, content: string): void {
+  assertSafeText(title, content);
 }
 
 function parse<T>(schema: z.ZodType<T>, input: unknown, message: string): T {

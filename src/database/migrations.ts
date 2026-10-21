@@ -250,4 +250,98 @@ export const migrations: readonly Migration[] = [
       CREATE INDEX idempotency_keys_expiry_idx ON idempotency_keys(expires_at);
     `,
   },
+  {
+    version: 4,
+    name: 'project_tasks_and_immutable_handoffs',
+    sql: `
+      CREATE TABLE tasks (
+        id TEXT PRIMARY KEY NOT NULL,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
+        title TEXT NOT NULL,
+        description TEXT,
+        status TEXT NOT NULL CHECK (
+          status IN ('todo', 'in_progress', 'blocked', 'completed', 'cancelled')
+        ),
+        priority TEXT NOT NULL CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
+        created_by_device_id TEXT NOT NULL REFERENCES devices(id) ON DELETE RESTRICT,
+        assigned_device_id TEXT REFERENCES devices(id) ON DELETE RESTRICT,
+        due_date TEXT,
+        linked_memory_ids_json TEXT NOT NULL,
+        evidence_references_json TEXT NOT NULL,
+        version INTEGER NOT NULL CHECK (version > 0),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE INDEX tasks_project_updated_idx ON tasks(project_id, updated_at DESC);
+      CREATE INDEX tasks_project_status_idx ON tasks(project_id, status);
+      CREATE INDEX tasks_project_assigned_idx ON tasks(project_id, assigned_device_id);
+
+      CREATE TABLE task_status_history (
+        id TEXT PRIMARY KEY NOT NULL,
+        task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
+        from_status TEXT NOT NULL CHECK (
+          from_status IN ('todo', 'in_progress', 'blocked', 'completed', 'cancelled')
+        ),
+        to_status TEXT NOT NULL CHECK (
+          to_status IN ('todo', 'in_progress', 'blocked', 'completed', 'cancelled')
+        ),
+        note TEXT,
+        actor_device_id TEXT NOT NULL REFERENCES devices(id) ON DELETE RESTRICT,
+        task_version INTEGER NOT NULL CHECK (task_version > 1),
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX task_status_history_task_created_idx
+        ON task_status_history(task_id, created_at ASC);
+
+      CREATE TRIGGER task_status_history_no_update
+      BEFORE UPDATE ON task_status_history
+      BEGIN
+        SELECT RAISE(ABORT, 'task status history is append-only');
+      END;
+
+      CREATE TRIGGER task_status_history_no_delete
+      BEFORE DELETE ON task_status_history
+      BEGIN
+        SELECT RAISE(ABORT, 'task status history is append-only');
+      END;
+
+      CREATE TABLE handoffs (
+        id TEXT PRIMARY KEY NOT NULL,
+        project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE RESTRICT,
+        task_id TEXT REFERENCES tasks(id) ON DELETE RESTRICT,
+        source_device_id TEXT NOT NULL REFERENCES devices(id) ON DELETE RESTRICT,
+        destination_device_id TEXT REFERENCES devices(id) ON DELETE RESTRICT,
+        summary TEXT NOT NULL,
+        completed_work_json TEXT NOT NULL,
+        verified_results_json TEXT NOT NULL,
+        blockers_json TEXT NOT NULL,
+        next_steps_json TEXT NOT NULL,
+        evidence_references_json TEXT NOT NULL,
+        linked_memory_ids_json TEXT NOT NULL,
+        linked_task_ids_json TEXT NOT NULL,
+        verification_status TEXT NOT NULL CHECK (
+          verification_status IN ('unverified', 'partially_verified', 'verified')
+        ),
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX handoffs_project_created_idx ON handoffs(project_id, created_at DESC);
+      CREATE INDEX handoffs_task_created_idx ON handoffs(task_id, created_at DESC);
+
+      CREATE TRIGGER handoffs_no_update
+      BEFORE UPDATE ON handoffs
+      BEGIN
+        SELECT RAISE(ABORT, 'handoffs are immutable');
+      END;
+
+      CREATE TRIGGER handoffs_no_delete
+      BEFORE DELETE ON handoffs
+      BEGIN
+        SELECT RAISE(ABORT, 'handoffs are immutable');
+      END;
+    `,
+  },
 ];
