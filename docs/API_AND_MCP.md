@@ -101,5 +101,34 @@ Task and handoff endpoints are deferred because those domain tables do not yet e
 
 ## MCP status
 
-MCP remains deferred. When implemented, it must call the same memory engine and authorization
-service rather than introducing a second database or business-logic path.
+Phase 4 implements a local stdio MCP server. It does not open an HTTP listener, expose remote MCP,
+or create a second database. The server authenticates each tool call with the bearer token supplied
+through `OMNIMEMORY_MCP_TOKEN`, then calls the existing `AuthService`, `AccessControlService`, and
+`MemoryEngine`.
+
+MCP tools:
+
+```text
+search_memory
+get_memory
+get_project_context
+list_recent_memories
+record_activity
+create_memory
+update_memory
+get_memory_history
+```
+
+All tools require a project ID. Read tools require project read access; activity and memory writes
+require project write access. Memory updates require `expectedVersion`, and memory writes accept an
+optional idempotency key scoped to the authenticated device. Tool arguments are schema-validated,
+limits are bounded, and public tool errors do not expose internal exception details or credentials.
+
+The stdio entry point is:
+
+```text
+npm run mcp
+```
+
+Use a local environment variable for `OMNIMEMORY_MCP_TOKEN`; never commit a real token to source
+control. Claude Code setup details are in `docs/MCP.md`.

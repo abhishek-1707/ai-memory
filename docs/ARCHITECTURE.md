@@ -24,9 +24,9 @@ revision with provenance, updates the current FTS index, and records an append-o
 The database uses a monotonic migration table and WAL mode. Search indexes only the current,
 non-deleted record projection. Historical versions remain available through `getMemoryHistory`.
 
-## Deferred
+## Deferred after Phase 4
 
-MCP, SSE, remote access, encrypted backup, provider adapters, and mobile UI are later phases.
+SSE, remote access, encrypted backup, provider adapters, and mobile UI remain later phases.
 
 ## Phase 3 implementation
 
@@ -63,3 +63,20 @@ project-scoped.
 
 Security-state changes write append-only records to `security_audit_events`. Domain history in
 `activity_events` and synchronization history in `change_log` remain separate concerns.
+
+## Phase 4 implementation
+
+Phase 4 adds a local stdio MCP boundary without creating a second service or database:
+
+```text
+stdio MCP client
+        -> serveStdio / McpServer
+        -> AuthService + AccessControlService
+        -> MemoryEngine
+        -> SQLite
+```
+
+The MCP server authenticates each tool call with the configured OmniMemory bearer token and applies
+the same project-scoped permissions as the REST API. It exposes only bounded memory and activity
+operations; arbitrary SQL, shell execution, filesystem access, and remote transports are not
+available.

@@ -3,7 +3,8 @@
 OmniMemory is a local-first, provider-independent memory engine for authorized AI agents.
 Phase 3 adds a localhost-only authenticated REST API, owner setup, device enrollment/revocation,
 project permissions, request validation, rate limiting, audit events, and idempotent memory writes.
-Remote access, MCP, mobile UI, backups, and provider integrations remain deferred.
+Phase 4 adds a local stdio MCP server that reuses the same authentication, authorization, and memory
+services. Remote MCP access, mobile UI, backups, and provider integrations remain deferred.
 
 ## Requirements
 
@@ -56,6 +57,19 @@ the authorized client; it is never returned again.
 
 The REST contract is documented in `docs/API_AND_MCP.md`.
 
+## Start the local MCP server
+
+The MCP server uses the same database and an existing OmniMemory bearer session token. Set the token
+only in the local process environment; do not put it in a committed file:
+
+```powershell
+$env:OMNIMEMORY_DB_PATH = '.\data\omnimemory.sqlite'
+$env:OMNIMEMORY_MCP_TOKEN = '<local-session-token>'
+npm run mcp
+```
+
+The MCP server communicates over stdio only. Its tools are documented in `docs/MCP.md`.
+
 ## Development demonstration
 
 ```powershell
@@ -79,7 +93,8 @@ npm run demo
 ## Scope limits for Phase 3
 
 - The REST API is now available on loopback only; it has no remote listener or permissive CORS.
-- No remote networking, SSE, PWA, MCP transport, or provider adapter.
+- The MCP server is available through local stdio only; no remote MCP transport is enabled.
+- No remote networking, SSE, PWA, or provider adapter.
 - No embeddings or external AI API calls.
 - Stored content is treated as untrusted text and is never executed.
 - General offline write queues and automatic conflict merging are deferred.

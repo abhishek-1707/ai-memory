@@ -5,6 +5,9 @@ export { AccessControlService } from './security/access-control.js';
 export { AuditService } from './security/audit.js';
 export { AuthService } from './security/auth.js';
 export { createLogger } from './logging.js';
+export { createMcpServer } from './mcp/server.js';
+export { buildMcpServer } from './mcp/server.js';
+export type { BuildMcpServerOptions, CreateMcpServerOptions } from './mcp/server.js';
 export {
   ConflictError,
   DatabaseError,

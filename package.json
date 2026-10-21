@@ -16,17 +16,20 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "demo": "tsx scripts/demo.ts",
+    "mcp": "tsx scripts/mcp-stdio.ts",
     "start": "tsx src/server.ts",
     "setup-code": "tsx scripts/create-setup-code.ts"
   },
   "dependencies": {
     "@fastify/helmet": "^13.2.0",
     "@fastify/rate-limit": "^11.2.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "fastify": "^5.12.7",
     "zod": "^4.1.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",
+    "@modelcontextprotocol/client": "^2.3.1",
     "@types/node": "^24.3.0",
     "eslint": "^9.35.0",
     "prettier": "^3.6.2",
