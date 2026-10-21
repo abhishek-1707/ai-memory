@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 
 const uuidSchema = z.string().uuid();
 
@@ -29,6 +29,12 @@ const memoryFields = {
 };
 
 const idempotencyKeySchema = z.string().trim().min(1).max(200).optional();
+const taskStatusSchema = z.enum(['todo', 'in_progress', 'blocked', 'completed', 'cancelled']);
+const taskPrioritySchema = z.enum(['low', 'normal', 'high', 'urgent']);
+const handoffVerificationStatusSchema = z.enum(['unverified', 'partially_verified', 'verified']);
+const boundedUuidArraySchema = z.array(uuidSchema).max(100);
+const boundedReferenceArraySchema = z.array(z.string().trim().min(1).max(2_000)).max(100);
+const dueDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 export const searchMemorySchema = z.object({
   projectId: uuidSchema,
@@ -89,6 +95,81 @@ export const updateMemorySchema = z
 
 export const memoryHistorySchema = getMemorySchema;
 
+export const createTaskSchema = z.object({
+  projectId: uuidSchema,
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(10_000).optional(),
+  priority: taskPrioritySchema.default('normal'),
+  assignedDeviceId: uuidSchema.optional(),
+  dueDate: dueDateSchema.optional(),
+  linkedMemoryIds: boundedUuidArraySchema.optional(),
+  evidenceReferences: boundedReferenceArraySchema.optional(),
+  idempotencyKey: idempotencyKeySchema,
+});
+
+export const listTasksSchema = z.object({
+  projectId: uuidSchema,
+  status: taskStatusSchema.optional(),
+  assignedDeviceId: uuidSchema.optional(),
+  limit: z.number().int().min(1).max(50).default(20),
+});
+
+export const getTaskSchema = z.object({
+  projectId: uuidSchema,
+  taskId: uuidSchema,
+});
+
+export const updateTaskSchema = z
+  .object({
+    projectId: uuidSchema,
+    taskId: uuidSchema,
+    expectedVersion: z.number().int().positive(),
+    title: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().max(10_000).nullable().optional(),
+    priority: taskPrioritySchema.optional(),
+    assignedDeviceId: uuidSchema.nullable().optional(),
+    dueDate: dueDateSchema.nullable().optional(),
+    linkedMemoryIds: boundedUuidArraySchema.optional(),
+    evidenceReferences: boundedReferenceArraySchema.optional(),
+  })
+  .refine(
+    (input) =>
+      input.title !== undefined ||
+      input.description !== undefined ||
+      input.priority !== undefined ||
+      input.assignedDeviceId !== undefined ||
+      input.dueDate !== undefined ||
+      input.linkedMemoryIds !== undefined ||
+      input.evidenceReferences !== undefined,
+    'At least one task field must change',
+  );
+
+export const createHandoffSchema = z.object({
+  projectId: uuidSchema,
+  taskId: uuidSchema.optional(),
+  destinationDeviceId: uuidSchema.optional(),
+  summary: z.string().trim().min(1).max(10_000),
+  completedWork: boundedReferenceArraySchema,
+  verifiedResults: boundedReferenceArraySchema.optional(),
+  blockers: boundedReferenceArraySchema.optional(),
+  nextSteps: boundedReferenceArraySchema,
+  evidenceReferences: boundedReferenceArraySchema.optional(),
+  linkedMemoryIds: boundedUuidArraySchema.optional(),
+  linkedTaskIds: boundedUuidArraySchema.optional(),
+  verificationStatus: handoffVerificationStatusSchema,
+  idempotencyKey: idempotencyKeySchema,
+});
+
+export const listHandoffsSchema = z.object({
+  projectId: uuidSchema,
+  limit: z.number().int().min(1).max(50).default(20),
+});
+
+export const getHandoffSchema = z.object({
+  projectId: uuidSchema,
+  handoffId: uuidSchema,
+});
+
 export type CreateMemoryArgs = z.infer<typeof createMemorySchema>;
 export type UpdateMemoryArgs = z.infer<typeof updateMemorySchema>;
 export type SearchMemoryArgs = z.infer<typeof searchMemorySchema>;
@@ -96,3 +177,10 @@ export type GetMemoryArgs = z.infer<typeof getMemorySchema>;
 export type ProjectContextArgs = z.infer<typeof projectContextSchema>;
 export type RecentMemoriesArgs = z.infer<typeof recentMemoriesSchema>;
 export type RecordActivityArgs = z.infer<typeof recordActivitySchema>;
+export type CreateTaskArgs = z.infer<typeof createTaskSchema>;
+export type ListTasksArgs = z.infer<typeof listTasksSchema>;
+export type GetTaskArgs = z.infer<typeof getTaskSchema>;
+export type UpdateTaskArgs = z.infer<typeof updateTaskSchema>;
+export type CreateHandoffArgs = z.infer<typeof createHandoffSchema>;
+export type ListHandoffsArgs = z.infer<typeof listHandoffsSchema>;
+export type GetHandoffArgs = z.infer<typeof getHandoffSchema>;

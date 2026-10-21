@@ -26,11 +26,15 @@ import { AccessControlService } from '../security/access-control.js';
 import { AuditService } from '../security/audit.js';
 import { AuthService } from '../security/auth.js';
 import type { AuthenticatedIdentity } from '../security/types.js';
+import { TaskTrackingService } from '../tasks/service.js';
 import {
   activitySchema,
-  enrollmentClaimSchema,
   deviceRoleSchema,
+  enrollmentClaimSchema,
   enrollmentRequestSchema,
+  handoffCreateSchema,
+  handoffListQuerySchema,
+  handoffParamSchema,
   idParamSchema,
   limitQuerySchema,
   loginBodySchema,
@@ -44,6 +48,11 @@ import {
   projectParamSchema,
   searchQuerySchema,
   setupBodySchema,
+  taskCreateSchema,
+  taskListQuerySchema,
+  taskParamSchema,
+  taskTransitionSchema,
+  taskUpdateSchema,
 } from './validation.js';
 
 declare module 'fastify' {
@@ -67,6 +76,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   const database = options.database ?? openDatabase(config.databasePath);
   const ownsDatabase = options.database === undefined;
   const engine = new MemoryEngine(database, logger);
+  const tasks = new TaskTrackingService(database, logger);
   const auth = new AuthService(database, logger, {
     sessionTtlMs: config.sessionTtlMs,
     idleSessionTtlMs: config.idleSessionTtlMs,
@@ -294,6 +304,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
         projectId: params.projectId,
         limit: query.limit,
       }),
+      recentTasks: tasks.listTasks({
+        projectId: params.projectId,
+        limit: Math.min(query.limit, 20),
+      }),
+      recentHandoffs: tasks.listHandoffs({
+        projectId: params.projectId,
+        limit: Math.min(query.limit, 20),
+      }),
     });
   });
 
@@ -401,6 +419,140 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       resourceId: activity.id,
     });
     return sendData(reply, activity, 201);
+  });
+
+  app.post(`${API_PREFIX}/projects/:projectId/tasks`, async (request, reply) => {
+    const identity = requireIdentity(request);
+    const params = parseRequest(projectParamSchema, request.params);
+    const body = parseRequest(taskCreateSchema, request.body);
+    access.requireProjectAccess(identity, params.projectId, 'write');
+    const task = tasks.createTask({
+      ...body,
+      projectId: params.projectId,
+      createdByDeviceId: identity.deviceId,
+      idempotencyKey: scopedIdempotencyKey(request, identity),
+    });
+    audit.record({
+      requestId: request.id,
+      action: 'task_created',
+      outcome: 'allowed',
+      actorDeviceId: identity.deviceId,
+      sessionId: identity.sessionId,
+      projectId: params.projectId,
+      resourceType: 'task',
+      resourceId: task.id,
+    });
+    return sendData(reply, task, 201);
+  });
+
+  app.get(`${API_PREFIX}/projects/:projectId/tasks`, async (request, reply) => {
+    const identity = requireIdentity(request);
+    const params = parseRequest(projectParamSchema, request.params);
+    const query = parseRequest(taskListQuerySchema, request.query);
+    access.requireProjectAccess(identity, params.projectId, 'read');
+    return sendData(reply, tasks.listTasks({ projectId: params.projectId, ...query }));
+  });
+
+  app.get(`${API_PREFIX}/projects/:projectId/tasks/:taskId`, async (request, reply) => {
+    const identity = requireIdentity(request);
+    const params = parseRequest(taskParamSchema, request.params);
+    access.requireProjectAccess(identity, params.projectId, 'read');
+    const task = tasks.getTask(params.taskId);
+    assertTaskProject(task.projectId, params.projectId, params.taskId);
+    return sendData(reply, task);
+  });
+
+  app.patch(`${API_PREFIX}/projects/:projectId/tasks/:taskId`, async (request, reply) => {
+    const identity = requireIdentity(request);
+    const params = parseRequest(taskParamSchema, request.params);
+    const body = parseRequest(taskUpdateSchema, request.body);
+    access.requireProjectAccess(identity, params.projectId, 'write');
+    const current = tasks.getTask(params.taskId);
+    assertTaskProject(current.projectId, params.projectId, params.taskId);
+    const task = tasks.updateTask(params.taskId, { ...body, actorDeviceId: identity.deviceId });
+    audit.record({
+      requestId: request.id,
+      action: 'task_updated',
+      outcome: 'allowed',
+      actorDeviceId: identity.deviceId,
+      sessionId: identity.sessionId,
+      projectId: params.projectId,
+      resourceType: 'task',
+      resourceId: task.id,
+    });
+    return sendData(reply, task);
+  });
+
+  app.post(
+    `${API_PREFIX}/projects/:projectId/tasks/:taskId/transitions`,
+    async (request, reply) => {
+      const identity = requireIdentity(request);
+      const params = parseRequest(taskParamSchema, request.params);
+      const body = parseRequest(taskTransitionSchema, request.body);
+      access.requireProjectAccess(identity, params.projectId, 'write');
+      const current = tasks.getTask(params.taskId);
+      assertTaskProject(current.projectId, params.projectId, params.taskId);
+      const task = tasks.transitionTask(params.taskId, {
+        ...body,
+        actorDeviceId: identity.deviceId,
+      });
+      audit.record({
+        requestId: request.id,
+        action: 'task_transitioned',
+        outcome: 'allowed',
+        actorDeviceId: identity.deviceId,
+        sessionId: identity.sessionId,
+        projectId: params.projectId,
+        resourceType: 'task',
+        resourceId: task.id,
+      });
+      return sendData(reply, task);
+    },
+  );
+
+  app.post(`${API_PREFIX}/projects/:projectId/handoffs`, async (request, reply) => {
+    const identity = requireIdentity(request);
+    const params = parseRequest(projectParamSchema, request.params);
+    const body = parseRequest(handoffCreateSchema, request.body);
+    access.requireProjectAccess(identity, params.projectId, 'write');
+    if (body.taskId !== undefined) {
+      const task = tasks.getTask(body.taskId);
+      assertTaskProject(task.projectId, params.projectId, body.taskId);
+    }
+    const handoff = tasks.createHandoff({
+      ...body,
+      projectId: params.projectId,
+      sourceDeviceId: identity.deviceId,
+      idempotencyKey: scopedIdempotencyKey(request, identity),
+    });
+    audit.record({
+      requestId: request.id,
+      action: 'handoff_created',
+      outcome: 'allowed',
+      actorDeviceId: identity.deviceId,
+      sessionId: identity.sessionId,
+      projectId: params.projectId,
+      resourceType: 'handoff',
+      resourceId: handoff.id,
+    });
+    return sendData(reply, handoff, 201);
+  });
+
+  app.get(`${API_PREFIX}/projects/:projectId/handoffs`, async (request, reply) => {
+    const identity = requireIdentity(request);
+    const params = parseRequest(projectParamSchema, request.params);
+    const query = parseRequest(handoffListQuerySchema, request.query);
+    access.requireProjectAccess(identity, params.projectId, 'read');
+    return sendData(reply, tasks.listHandoffs({ projectId: params.projectId, ...query }));
+  });
+
+  app.get(`${API_PREFIX}/projects/:projectId/handoffs/:handoffId`, async (request, reply) => {
+    const identity = requireIdentity(request);
+    const params = parseRequest(handoffParamSchema, request.params);
+    access.requireProjectAccess(identity, params.projectId, 'read');
+    const handoff = tasks.getHandoff(params.handoffId);
+    assertHandoffProject(handoff.projectId, params.projectId, params.handoffId);
+    return sendData(reply, handoff);
   });
 
   app.setErrorHandler((error, request, reply) => {
@@ -522,6 +674,26 @@ function recordMemoryAudit(
 function assertMemoryProject(memoryProjectId: string | undefined, expectedProjectId: string): void {
   if (memoryProjectId !== expectedProjectId) {
     throw new NotFoundError('Memory', expectedProjectId);
+  }
+}
+
+function assertTaskProject(
+  taskProjectId: string | undefined,
+  expectedProjectId: string,
+  taskId: string,
+): void {
+  if (taskProjectId !== expectedProjectId) {
+    throw new NotFoundError('Task', taskId);
+  }
+}
+
+function assertHandoffProject(
+  handoffProjectId: string | undefined,
+  expectedProjectId: string,
+  handoffId: string,
+): void {
+  if (handoffProjectId !== expectedProjectId) {
+    throw new NotFoundError('Handoff', handoffId);
   }
 }
 

@@ -20,6 +20,16 @@ import { AccessControlService } from '../security/access-control.js';
 import { AuditService } from '../security/audit.js';
 import { AuthService } from '../security/auth.js';
 import type { AuthenticatedIdentity } from '../security/types.js';
+import { TaskTrackingService } from '../tasks/service.js';
+import {
+  createHandoffSchema,
+  createTaskSchema,
+  getHandoffSchema,
+  getTaskSchema,
+  listHandoffsSchema,
+  listTasksSchema,
+  updateTaskSchema,
+} from './validation.js';
 
 const MAX_LIMIT = 50;
 const MAX_OUTPUT_CHARACTERS = 512_000;
@@ -139,6 +149,7 @@ export function createMcpServer(options: CreateMcpServerOptions): McpServer {
   const logger = options.logger ?? createLogger('error');
   const config = options.config ?? loadConfig();
   const engine = new MemoryEngine(options.database, logger);
+  const tasks = new TaskTrackingService(options.database, logger);
   const auth = new AuthService(options.database, logger, {
     sessionTtlMs: config.sessionTtlMs,
     idleSessionTtlMs: config.idleSessionTtlMs,
@@ -214,6 +225,14 @@ export function createMcpServer(options: CreateMcpServerOptions): McpServer {
           recentMemories: engine.listRecentMemories({
             projectId: input.projectId,
             limit: input.limit,
+          }),
+          recentTasks: tasks.listTasks({
+            projectId: input.projectId,
+            limit: Math.min(input.limit, 20),
+          }),
+          recentHandoffs: tasks.listHandoffs({
+            projectId: input.projectId,
+            limit: Math.min(input.limit, 20),
           }),
         };
       }),
@@ -333,6 +352,151 @@ export function createMcpServer(options: CreateMcpServerOptions): McpServer {
       }),
   );
 
+  server.registerTool(
+    'create_task',
+    {
+      description: 'Create a task in an authorized project.',
+      inputSchema: createTaskSchema,
+    },
+    async (input) =>
+      run('create_task', (identity) => {
+        access.requireProjectAccess(identity, input.projectId, 'write');
+        const task = tasks.createTask({
+          ...input,
+          createdByDeviceId: identity.deviceId,
+          idempotencyKey: scopeIdempotencyKey(identity, input.idempotencyKey),
+        });
+        audit.record({
+          requestId: `mcp:${identity.sessionId}`,
+          action: 'task_created',
+          outcome: 'allowed',
+          actorDeviceId: identity.deviceId,
+          sessionId: identity.sessionId,
+          projectId: input.projectId,
+          resourceType: 'task',
+          resourceId: task.id,
+        });
+        return task;
+      }),
+  );
+
+  server.registerTool(
+    'list_tasks',
+    {
+      description: 'List tasks in an authorized project.',
+      inputSchema: listTasksSchema,
+    },
+    async (input) =>
+      run('list_tasks', (identity) => {
+        access.requireProjectAccess(identity, input.projectId, 'read');
+        return tasks.listTasks(input);
+      }),
+  );
+
+  server.registerTool(
+    'get_task',
+    {
+      description: 'Retrieve one task from an authorized project.',
+      inputSchema: getTaskSchema,
+    },
+    async (input) =>
+      run('get_task', (identity) => {
+        access.requireProjectAccess(identity, input.projectId, 'read');
+        const task = tasks.getTask(input.taskId);
+        assertTaskProject(task.projectId, input.projectId, input.taskId);
+        return task;
+      }),
+  );
+
+  server.registerTool(
+    'update_task',
+    {
+      description: 'Update a task with optimistic version protection.',
+      inputSchema: updateTaskSchema,
+    },
+    async (input) =>
+      run('update_task', (identity) => {
+        access.requireProjectAccess(identity, input.projectId, 'write');
+        const current = tasks.getTask(input.taskId);
+        assertTaskProject(current.projectId, input.projectId, input.taskId);
+        const task = tasks.updateTask(input.taskId, {
+          ...input,
+          actorDeviceId: identity.deviceId,
+        });
+        audit.record({
+          requestId: `mcp:${identity.sessionId}`,
+          action: 'task_updated',
+          outcome: 'allowed',
+          actorDeviceId: identity.deviceId,
+          sessionId: identity.sessionId,
+          projectId: input.projectId,
+          resourceType: 'task',
+          resourceId: task.id,
+        });
+        return task;
+      }),
+  );
+
+  server.registerTool(
+    'create_handoff',
+    {
+      description: 'Create a handoff in an authorized project.',
+      inputSchema: createHandoffSchema,
+    },
+    async (input) =>
+      run('create_handoff', (identity) => {
+        access.requireProjectAccess(identity, input.projectId, 'write');
+        if (input.taskId !== undefined) {
+          const task = tasks.getTask(input.taskId);
+          assertTaskProject(task.projectId, input.projectId, input.taskId);
+        }
+        const handoff = tasks.createHandoff({
+          ...input,
+          sourceDeviceId: identity.deviceId,
+          idempotencyKey: scopeIdempotencyKey(identity, input.idempotencyKey),
+        });
+        audit.record({
+          requestId: `mcp:${identity.sessionId}`,
+          action: 'handoff_created',
+          outcome: 'allowed',
+          actorDeviceId: identity.deviceId,
+          sessionId: identity.sessionId,
+          projectId: input.projectId,
+          resourceType: 'handoff',
+          resourceId: handoff.id,
+        });
+        return handoff;
+      }),
+  );
+
+  server.registerTool(
+    'list_handoffs',
+    {
+      description: 'List handoffs in an authorized project.',
+      inputSchema: listHandoffsSchema,
+    },
+    async (input) =>
+      run('list_handoffs', (identity) => {
+        access.requireProjectAccess(identity, input.projectId, 'read');
+        return tasks.listHandoffs(input);
+      }),
+  );
+
+  server.registerTool(
+    'get_handoff',
+    {
+      description: 'Retrieve one handoff from an authorized project.',
+      inputSchema: getHandoffSchema,
+    },
+    async (input) =>
+      run('get_handoff', (identity) => {
+        access.requireProjectAccess(identity, input.projectId, 'read');
+        const handoff = tasks.getHandoff(input.handoffId);
+        assertHandoffProject(handoff.projectId, input.projectId, input.handoffId);
+        return handoff;
+      }),
+  );
+
   return server;
 }
 
@@ -352,6 +516,26 @@ function assertMemoryProject(
 ): void {
   if (memoryProjectId !== expectedProjectId) {
     throw new NotFoundError('Memory', memoryId);
+  }
+}
+
+function assertTaskProject(
+  taskProjectId: string | undefined,
+  expectedProjectId: string,
+  taskId: string,
+): void {
+  if (taskProjectId !== expectedProjectId) {
+    throw new NotFoundError('Task', taskId);
+  }
+}
+
+function assertHandoffProject(
+  handoffProjectId: string | undefined,
+  expectedProjectId: string,
+  handoffId: string,
+): void {
+  if (handoffProjectId !== expectedProjectId) {
+    throw new NotFoundError('Handoff', handoffId);
   }
 }
 
