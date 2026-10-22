@@ -24,7 +24,9 @@
     "desktop:dev": "npm run build && electron .",
     "desktop:build:dir": "npm run build && electron-builder --dir --win --x64",
     "desktop:build": "npm run build && electron-builder --win --x64",
-    "desktop:smoke": "tsx scripts/desktop-smoke.ts"
+    "desktop:smoke": "tsx scripts/desktop-smoke.ts",
+    "site:preview": "tsx scripts/preview-site.ts",
+    "site:build": "tsx scripts/build-site.ts"
   },
   "dependencies": {
     "@fastify/helmet": "^13.2.0",

@@ -1,0 +1,1504 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniMemory — Local-First AI Memory &amp; Agent Coordination Engine</title>
+    <meta
+      name="description"
+      content="OmniMemory brings AI memory, project knowledge, tasks, and agent handoffs into one local-first workspace. Powered by local SQLite with FTS5 and Model Context Protocol."
+    />
+    <meta name="theme-color" content="#fbfcfd" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph Metadata -->
+    <meta
+      property="og:title"
+      content="OmniMemory — Local-First AI Memory &amp; Agent Coordination Engine"
+    />
+    <meta
+      property="og:description"
+      content="OmniMemory brings AI memory, project knowledge, tasks, and agent handoffs into one local-first workspace on Windows."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="assets/icon.svg" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="assets/icon.svg" />
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css" />
+
+    <!-- Configuration & Client Logic -->
+    <script src="site-config.js"></script>
+    <script src="site.js" defer></script>
+  </head>
+  <body>
+    <!-- Accessibility Skip Link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Top Navigation -->
+    <header class="site-header">
+      <div class="container site-nav">
+        <a href="#hero" class="brand-link" aria-label="OmniMemory Home">
+          <img
+            src="assets/icon.svg"
+            alt="OmniMemory Logo"
+            class="brand-logo"
+            width="38"
+            height="38"
+          />
+          <span class="brand-name">OmniMemory</span>
+          <span class="brand-badge" data-bind="version">v0.1.0</span>
+        </a>
+
+        <nav aria-label="Primary Navigation">
+          <ul class="nav-menu" id="nav-menu">
+            <li><a href="#features" class="nav-link">Features</a></li>
+            <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+            <li><a href="#privacy" class="nav-link">Architecture &amp; Privacy</a></li>
+            <li><a href="#status" class="nav-link">Status</a></li>
+            <li><a href="#faq" class="nav-link">FAQ</a></li>
+            <li><a href="#download" class="nav-link">Download</a></li>
+          </ul>
+        </nav>
+
+        <div class="nav-cta-wrapper">
+          <a href="#download" class="btn btn-primary btn-sm" id="nav-download-cta">
+            Download for Windows
+          </a>
+          <button
+            class="menu-toggle"
+            id="mobile-menu-toggle"
+            aria-expanded="false"
+            aria-controls="nav-menu"
+            aria-label="Toggle navigation menu"
+          >
+            <svg
+              class="menu-toggle-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content">
+      <!-- Hero Section -->
+      <section class="section hero" id="hero" aria-labelledby="hero-title">
+        <div class="container hero-grid">
+          <div class="hero-content">
+            <div class="hero-pill">
+              <span class="hero-pill-status" aria-hidden="true"></span>
+              <span>Windows x64 • Local-First SQLite • Stdio MCP</span>
+            </div>
+            <h1 id="hero-title">Your AI should remember what matters.</h1>
+            <p class="hero-description">
+              OmniMemory brings AI memory, project knowledge, tasks, and agent handoffs into one
+              local-first workspace.
+            </p>
+            <div class="hero-actions">
+              <a href="#download" class="btn btn-primary btn-lg" id="hero-download-btn">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Download for Windows</span>
+              </a>
+              <a href="#features" class="btn btn-secondary btn-lg"> Explore Features </a>
+              <a
+                href="https://github.com/abhishek-1707/ai-memory"
+                class="btn btn-secondary btn-lg"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-bind="repo-url"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                  ></path>
+                </svg>
+                <span>GitHub</span>
+              </a>
+            </div>
+            <div class="hero-meta">
+              <span class="hero-meta-item">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <span data-bind="platform">Windows 10 / 11 (64-bit x64)</span>
+              </span>
+              <span class="hero-meta-item">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Local SQLite Store</span>
+              </span>
+              <span class="hero-meta-item">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="16 18 22 12 16 6"></polyline>
+                  <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                <span>Local Stdio MCP</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Abstract Product Architecture Diagram -->
+          <div class="hero-visual" aria-label="OmniMemory Architecture Diagram">
+            <div class="hero-diagram">
+              <div class="diagram-header">
+                <span>LOCAL WORKSPACE TOPOLOGY</span>
+                <span>STANDALONE ENGINE</span>
+              </div>
+              <div class="diagram-hub">
+                <div class="hub-title">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                  </svg>
+                  <span>OmniMemory Local Engine</span>
+                </div>
+                <div class="hub-desc">
+                  SQLite + FTS5 Full-Text Index &bull; Optimistic Concurrency &bull; Bounded Project
+                  Context
+                </div>
+              </div>
+              <div class="diagram-connectors">
+                <div class="diagram-card">
+                  <div class="diagram-card-title">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#2563eb"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    <span>Authorized AI Agents</span>
+                  </div>
+                  <div class="diagram-card-desc">
+                    Connect via local stdio MCP (Claude Desktop, Cline, custom agents).
+                  </div>
+                </div>
+                <div class="diagram-card">
+                  <div class="diagram-card-title">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#6366f1"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <span>Tasks &amp; Handoffs</span>
+                  </div>
+                  <div class="diagram-card-desc">
+                    Project tasks with validated transitions and immutable evidence handoffs.
+                  </div>
+                </div>
+              </div>
+              <div class="diagram-footer">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Loopback 127.0.0.1 Only &bull; Physical Database in %APPDATA%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features Section -->
+      <section class="section section-alt" id="features" aria-labelledby="features-title">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">Capabilities</span>
+            <h2 id="features-title">Implemented Features</h2>
+            <p class="section-subtitle">
+              Every capability below is fully built and tested in the current implementation.
+            </p>
+          </div>
+
+          <div class="features-grid">
+            <!-- 1. Shared Memory & Lexical Search -->
+            <article class="feature-card">
+              <div class="feature-icon-wrapper blue" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </div>
+              <h3 class="feature-title">Shared Memory &amp; Lexical Search</h3>
+              <p class="feature-desc">
+                Organize memories by project with fast lexical search powered by SQLite FTS5.
+                Retrieve exact keywords, identifiers, and architectural guidelines without external
+                cloud vector services.
+              </p>
+              <div class="feature-tags">
+                <span class="feature-tag">SQLite FTS5</span>
+                <span class="feature-tag">Project Scoped</span>
+              </div>
+            </article>
+
+            <!-- 2. Memory Revisions & Provenance -->
+            <article class="feature-card">
+              <div class="feature-icon-wrapper lavender" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                </svg>
+              </div>
+              <h3 class="feature-title">Revisions, Provenance &amp; Verification</h3>
+              <p class="feature-desc">
+                Every memory write creates an immutable revision with author and device provenance.
+                Optimistic concurrency checks prevent stale overwrites, while verification flags
+                mark confirmed truths.
+              </p>
+              <div class="feature-tags">
+                <span class="feature-tag">Optimistic Locking</span>
+                <span class="feature-tag">Revision History</span>
+              </div>
+            </article>
+
+            <!-- 3. Project Context -->
+            <article class="feature-card">
+              <div class="feature-icon-wrapper green" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="feature-title">Bounded Project Context</h3>
+              <p class="feature-desc">
+                Agents retrieve bounded project metadata, instructions, and active context before
+                beginning work. Context boundaries prevent hallucinated workspace scopes and
+                cross-project leaks.
+              </p>
+              <div class="feature-tags">
+                <span class="feature-tag">Isolated Projects</span>
+                <span class="feature-tag">Context Boundaries</span>
+              </div>
+            </article>
+
+            <!-- 4. Task Tracking -->
+            <article class="feature-card">
+              <div class="feature-icon-wrapper amber" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="9 11 12 14 22 4"></polyline>
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+              </div>
+              <h3 class="feature-title">Tasks &amp; Validated Status Transitions</h3>
+              <p class="feature-desc">
+                Project tasks follow a deterministic state machine with validated transitions.
+                Version checks protect against concurrent conflict, and terminal states cannot be
+                reopened or silently mutated.
+              </p>
+              <div class="feature-tags">
+                <span class="feature-tag">State Machine</span>
+                <span class="feature-tag">Terminal Safety</span>
+              </div>
+            </article>
+
+            <!-- 5. Structured Handoffs -->
+            <article class="feature-card">
+              <div class="feature-icon-wrapper lavender" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                </svg>
+              </div>
+              <h3 class="feature-title">Structured, Immutable Agent Handoffs</h3>
+              <p class="feature-desc">
+                Agents record durable handoff documents naming completed work, verified evidence,
+                active blockers, and recommended next steps so subsequent agents resume seamlessly
+                with complete context.
+              </p>
+              <div class="feature-tags">
+                <span class="feature-tag">Evidence-Backed</span>
+                <span class="feature-tag">Immutable Records</span>
+              </div>
+            </article>
+
+            <!-- 6. Local MCP Integration -->
+            <article class="feature-card">
+              <div class="feature-icon-wrapper blue" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                  <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                  <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                  <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                </svg>
+              </div>
+              <h3 class="feature-title">Local Model Context Protocol (MCP)</h3>
+              <p class="feature-desc">
+                Expose memory, project context, tasks, and handoffs directly to compatible AI tools
+                like Claude Desktop and Cline over standard local stdio, authenticated with an
+                explicit bearer token.
+              </p>
+              <div class="feature-tags">
+                <span class="feature-tag">Stdio Transport</span>
+                <span class="feature-tag">Claude / Cline</span>
+              </div>
+            </article>
+
+            <!-- 7. Authenticated REST API & Permissions -->
+            <article class="feature-card">
+              <div class="feature-icon-wrapper green" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
+              <h3 class="feature-title">Authenticated API &amp; Access Controls</h3>
+              <p class="feature-desc">
+                Loopback-only Fastify REST API with one-time setup codes, scrypt password hashing,
+                SHA-256 token hashing, per-device enrollment and revocation, and granular
+                reader/editor/owner roles.
+              </p>
+              <div class="feature-tags">
+                <span class="feature-tag">Loopback 127.0.0.1</span>
+                <span class="feature-tag">Device RBAC</span>
+              </div>
+            </article>
+
+            <!-- 8. Windows Desktop Shell -->
+            <article class="feature-card">
+              <div class="feature-icon-wrapper blue" aria-hidden="true">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+              </div>
+              <h3 class="feature-title">Standalone Windows Desktop Shell</h3>
+              <p class="feature-desc">
+                Packaged Electron 45 desktop shell managing the backend as an owned child process
+                with a per-launch readiness handshake. Packaged as a Windows x64 NSIS installer
+                (undergoing installation validation).
+              </p>
+              <div class="feature-tags">
+                <span class="feature-tag">Windows x64</span>
+                <span class="feature-tag">Electron 45 / Node 24</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- How It Works Section -->
+      <section class="section" id="how-it-works" aria-labelledby="how-it-works-title">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">Workflow</span>
+            <h2 id="how-it-works-title">How OmniMemory Works</h2>
+            <p class="section-subtitle">
+              A disciplined, local-first coordination cycle between you and your AI agents.
+            </p>
+          </div>
+
+          <div class="workflow-steps">
+            <div class="workflow-card">
+              <div class="workflow-step-num" aria-hidden="true">1</div>
+              <h3>Store Project Knowledge</h3>
+              <p>
+                Store project architecture, guidelines, schema decisions, and critical context in
+                your local SQLite store.
+              </p>
+            </div>
+            <div class="workflow-card">
+              <div class="workflow-step-num" aria-hidden="true">2</div>
+              <h3>Equip Authorized Agents</h3>
+              <p>
+                Authorized agents connect via local stdio MCP or authenticated REST to query
+                relevant context before taking action.
+              </p>
+            </div>
+            <div class="workflow-card">
+              <div class="workflow-step-num" aria-hidden="true">3</div>
+              <h3>Track Tasks &amp; Progress</h3>
+              <p>
+                Agents advance tasks through validated status transitions, recording evidence and
+                verified results at each milestone.
+              </p>
+            </div>
+            <div class="workflow-card">
+              <div class="workflow-step-num" aria-hidden="true">4</div>
+              <h3>Record Clean Handoffs</h3>
+              <p>
+                Create immutable handoff records that summarize completed work and blockers so
+                another agent or session resumes without context loss.
+              </p>
+            </div>
+          </div>
+
+          <div class="workflow-disclaimer" role="note">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#d97706"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              style="flex-shrink: 0"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <div>
+              <strong>Integration Boundary Notice:</strong> OmniMemory provides open, standardized
+              interfaces (MCP over stdio and loopback REST). Third-party AI tools do not integrate
+              automatically without being explicitly configured with authorization.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Architecture, Privacy & Security Section -->
+      <section class="section section-alt" id="privacy" aria-labelledby="privacy-title">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">Trust &amp; Architecture</span>
+            <h2 id="privacy-title">Privacy &amp; Security Protections</h2>
+            <p class="section-subtitle">
+              Designed from first principles to keep your project knowledge under your control.
+            </p>
+          </div>
+
+          <div class="privacy-grid">
+            <div class="privacy-card">
+              <div class="privacy-card-header">
+                <div class="feature-icon-wrapper green" aria-hidden="true" style="margin-bottom: 0">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                </div>
+                <h3 class="privacy-card-title">Implemented Protections</h3>
+              </div>
+              <ul class="privacy-list">
+                <li class="privacy-list-item">
+                  <svg
+                    class="privacy-check-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Local-First Storage:</strong> Your data is stored exclusively on your
+                    local computer in a SQLite database file with WAL mode.
+                  </div>
+                </li>
+                <li class="privacy-list-item">
+                  <svg
+                    class="privacy-check-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Loopback Isolation:</strong> The REST API binds strictly to
+                    <code>127.0.0.1</code>. Foreign origins and remote requests are rejected.
+                  </div>
+                </li>
+                <li class="privacy-list-item">
+                  <svg
+                    class="privacy-check-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Cryptographic Credentials:</strong> Master passwords use asynchronous
+                    <code>scrypt</code> with random salts; tokens are hashed with SHA-256.
+                  </div>
+                </li>
+                <li class="privacy-list-item">
+                  <svg
+                    class="privacy-check-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Audit Logging &amp; Permissions:</strong> Security state changes and
+                    device enrollments are recorded in an append-only audit log.
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <div class="privacy-card">
+              <div class="privacy-card-header">
+                <div
+                  class="feature-icon-wrapper lavender"
+                  aria-hidden="true"
+                  style="margin-bottom: 0"
+                >
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                  </svg>
+                </div>
+                <h3 class="privacy-card-title">Accurate Privacy Boundaries</h3>
+              </div>
+              <p>
+                We believe in complete transparency about what is implemented today versus what is
+                deferred.
+              </p>
+              <div class="privacy-warning-box">
+                <p><strong>What Local-First Means Here:</strong></p>
+                <p style="margin-top: 6px; font-size: 0.875rem">
+                  Local-first means your data resides on your machine and works without an internet
+                  connection. It does <strong>not</strong> mean OmniMemory automatically
+                  synchronizes across multiple computers or phones.
+                </p>
+                <p style="margin-top: 8px; font-size: 0.875rem">
+                  We do not claim end-to-end cloud encryption, remote internet relay, or automated
+                  cloud backups because those features have not yet been built or tested.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Product Status Section -->
+      <section class="section" id="status" aria-labelledby="status-title">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">Roadmap Transparency</span>
+            <h2 id="status-title">Available Now vs. Planned</h2>
+            <p class="section-subtitle">
+              Clear distinction between working features in v0.1.0 and planned future phases.
+            </p>
+          </div>
+
+          <div class="status-grid">
+            <div class="status-card">
+              <span class="status-badge available">Available in v0.1.0</span>
+              <h3>Current Implementation</h3>
+              <ul class="status-items">
+                <li class="status-item">
+                  <svg
+                    class="status-icon check"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Memory Management:</strong> Project-scoped memories with optimistic
+                    versioning and FTS5 search.
+                  </div>
+                </li>
+                <li class="status-item">
+                  <svg
+                    class="status-icon check"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Projects &amp; Context:</strong> Isolated projects with bounded context
+                    for agent querying.
+                  </div>
+                </li>
+                <li class="status-item">
+                  <svg
+                    class="status-icon check"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Tasks &amp; Agent Handoffs:</strong> Validated status transitions and
+                    immutable handoff records.
+                  </div>
+                </li>
+                <li class="status-item">
+                  <svg
+                    class="status-icon check"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Local Stdio MCP:</strong> Model Context Protocol integration with local
+                    session tokens.
+                  </div>
+                </li>
+                <li class="status-item">
+                  <svg
+                    class="status-icon check"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Responsive Local Web App:</strong> PWA served on loopback at
+                    <code>http://127.0.0.1:3210/</code>.
+                  </div>
+                </li>
+                <li class="status-item">
+                  <svg
+                    class="status-icon check"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Windows Desktop Packaging:</strong> NSIS package created; undergoing
+                    Windows launch validation.
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <div class="status-card">
+              <span class="status-badge planned">Future Releases</span>
+              <h3>Planned Roadmap</h3>
+              <ul class="status-items">
+                <li class="status-item">
+                  <svg
+                    class="status-icon clock"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Same-Wi-Fi Device Access:</strong> Encrypted LAN device pairing for
+                    secondary workstations.
+                  </div>
+                </li>
+                <li class="status-item">
+                  <svg
+                    class="status-icon clock"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Remote Connectivity:</strong> Optional secure relays to connect from
+                    outside the home network.
+                  </div>
+                </li>
+                <li class="status-item">
+                  <svg
+                    class="status-icon clock"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Cross-Device Synchronization:</strong> Peer-to-peer sync with conflict
+                    resolution.
+                  </div>
+                </li>
+                <li class="status-item">
+                  <svg
+                    class="status-icon clock"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <div>
+                    <strong>Encrypted Backup &amp; Recovery:</strong> Automated encrypted snapshots
+                    and point-in-time recovery.
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Windows Download Section -->
+      <section class="section section-alt" id="download" aria-labelledby="download-title">
+        <div class="container">
+          <div class="download-card-main">
+            <div class="download-grid">
+              <div class="download-info">
+                <span class="download-header-badge">Windows Application</span>
+                <h2 id="download-title" class="download-headline">Get OmniMemory for Windows</h2>
+                <p class="download-desc">
+                  Download the standalone desktop application for Windows. Includes the local SQLite
+                  database engine, authenticated PWA interface, and MCP server.
+                </p>
+
+                <!-- Dynamic Download Action Box -->
+                <div class="download-action-box">
+                  <div id="download-status-banner" class="download-status-banner validation">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="8" x2="12" y2="12"></line>
+                      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div>
+                      <strong>Release Status:</strong> The Windows x64 NSIS installer is packaged
+                      (110.8 MB) and smoke-tested. Public release binary hosting is in Windows
+                      launch validation.
+                    </div>
+                  </div>
+
+                  <div class="download-buttons">
+                    <a
+                      href="#download-install-guide"
+                      class="btn btn-primary download-btn"
+                      id="primary-download-btn"
+                    >
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                      </svg>
+                      <span>Release in Windows Validation — View Setup Guide</span>
+                    </a>
+                  </div>
+
+                  <div class="download-specs">
+                    <div class="spec-item">
+                      <span class="spec-label">Version</span>
+                      <span class="spec-value" data-bind="version">v0.1.0</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Architecture</span>
+                      <span class="spec-value" data-bind="platform">Windows x64</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Installer Size</span>
+                      <span class="spec-value" data-bind="installer-size">110.8 MB</span>
+                    </div>
+                    <div class="spec-item">
+                      <span class="spec-label">Package Name</span>
+                      <span
+                        class="spec-value"
+                        style="font-size: 0.8rem; word-break: break-all"
+                        data-bind="installer-name"
+                        >OmniMemory-0.1.0-x64-Setup.exe</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <div style="font-size: 0.875rem; color: var(--color-text-muted)">
+                  <strong>Validation Note:</strong> The packaged executable and installer build have
+                  passed isolated automated smoke tests. Real physical installation and launch
+                  validation on Windows is in progress before publishing public distribution
+                  mirrors.
+                </div>
+              </div>
+
+              <!-- Installation Instructions & Requirements -->
+              <div class="download-sidebar" id="download-install-guide">
+                <div class="install-guide">
+                  <h3>Installation Steps</h3>
+                  <ol class="install-steps">
+                    <li class="install-step">
+                      <span class="install-step-num">1</span>
+                      <div>
+                        <strong>Obtain Installer:</strong> Download or build the installer
+                        <code>OmniMemory-0.1.0-x64-Setup.exe</code>.
+                      </div>
+                    </li>
+                    <li class="install-step">
+                      <span class="install-step-num">2</span>
+                      <div>
+                        <strong>Run Installer:</strong> Launch setup. It installs per-user in
+                        <code>%LOCALAPPDATA%</code> without needing administrator rights.
+                      </div>
+                    </li>
+                    <li class="install-step">
+                      <span class="install-step-num">3</span>
+                      <div>
+                        <strong>Launch App:</strong> Open OmniMemory from your Start Menu or desktop
+                        shortcut.
+                      </div>
+                    </li>
+                    <li class="install-step">
+                      <span class="install-step-num">4</span>
+                      <div>
+                        <strong>Complete Setup:</strong> Enter the initial setup code generated on
+                        first run and create your owner password.
+                      </div>
+                    </li>
+                  </ol>
+
+                  <div
+                    style="
+                      margin-top: 20px;
+                      padding-top: 16px;
+                      border-top: 1px solid var(--color-border-subtle);
+                      font-size: 0.85rem;
+                    "
+                  >
+                    <strong>System Requirements:</strong>
+                    <ul
+                      style="margin-left: 18px; margin-top: 6px; color: var(--color-text-secondary)"
+                    >
+                      <li>Windows 10 or Windows 11 (64-bit x64)</li>
+                      <li>4 GB RAM minimum (8 GB recommended)</li>
+                      <li>300 MB free disk space</li>
+                      <li>No separate Node.js installation needed for desktop app</li>
+                    </ul>
+                  </div>
+
+                  <details class="source-build-box" id="source-build">
+                    <summary>Build from Source Instructions</summary>
+                    <p
+                      style="
+                        margin-top: 8px;
+                        font-size: 0.85rem;
+                        color: var(--color-text-secondary);
+                      "
+                    >
+                      To build the Windows NSIS installer locally from the Git repository:
+                    </p>
+                    <pre><code id="build-code-snippet">git clone https://github.com/abhishek-1707/ai-memory.git
+cd ai-memory
+npm install
+npm run build
+npm run desktop:build</code></pre>
+                    <p style="margin-top: 8px; font-size: 0.8rem; color: var(--color-text-muted)">
+                      The built installer will be produced in
+                      <code>artifacts-v2/OmniMemory-0.1.0-x64-Setup.exe</code>.
+                    </p>
+                  </details>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Frequently Asked Questions (FAQ) Section -->
+      <section class="section" id="faq" aria-labelledby="faq-title">
+        <div class="container">
+          <div class="section-header">
+            <span class="section-tag">Help &amp; Answers</span>
+            <h2 id="faq-title">Frequently Asked Questions</h2>
+            <p class="section-subtitle">
+              Clear answers reflecting the real, unvarnished state of OmniMemory.
+            </p>
+          </div>
+
+          <div class="faq-list">
+            <!-- Question 1 -->
+            <details class="faq-item" open>
+              <summary class="faq-question">
+                <span>What is OmniMemory?</span>
+                <svg
+                  class="faq-toggle-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  OmniMemory is a local-first memory and coordination engine for AI agents and
+                  developers. It provides project-scoped memory with lexical search, task tracking
+                  with validated state transitions, and immutable handoff records so AI agents can
+                  share durable context across sessions without relying on third-party cloud memory
+                  databases.
+                </p>
+              </div>
+            </details>
+
+            <!-- Question 2 -->
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>Does it require Node.js to be installed separately?</span>
+                <svg
+                  class="faq-toggle-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  <strong>No for the Windows desktop application:</strong> The desktop app embeds
+                  Electron 45 with its own bundled Node 24 runtime and native SQLite engine. You do
+                  not need to install Node.js separately to run the desktop app.
+                </p>
+                <p>
+                  <strong>Yes for development and CLI MCP server:</strong> If you run OmniMemory
+                  from source or execute the standalone MCP stdio script in development, Node.js 24
+                  or newer is required to support the native <code>node:sqlite</code> module.
+                </p>
+              </div>
+            </details>
+
+            <!-- Question 3 -->
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>Where is my memory stored?</span>
+                <svg
+                  class="faq-toggle-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  Your memory is stored locally in an authoritative SQLite database on your
+                  computer. In the Windows desktop application, the database is placed in your
+                  per-user application data directory:
+                </p>
+                <p><code>%APPDATA%\OmniMemory\omnimemory.sqlite</code></p>
+                <p>
+                  The database is never placed in the installation folder, and uninstallation does
+                  not delete your memory data.
+                </p>
+              </div>
+            </details>
+
+            <!-- Question 4 -->
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>Does it connect every AI application automatically?</span>
+                <svg
+                  class="faq-toggle-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  <strong>No.</strong> AI applications do not connect automatically. OmniMemory
+                  exposes standard Model Context Protocol (MCP) over local stdio and an
+                  authenticated loopback REST API. Compatible AI tools (such as Claude Desktop,
+                  Cline, or custom agent scripts) must be explicitly configured with an authorized
+                  session token and target project ID.
+                </p>
+              </div>
+            </details>
+
+            <!-- Question 5 -->
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>Can I use it on my phone?</span>
+                <svg
+                  class="faq-toggle-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  <strong>Not in the current release.</strong> The backend binds strictly to
+                  loopback (<code>127.0.0.1</code>) on your PC and rejects connections from
+                  non-loopback network interfaces. Secure same-Wi-Fi device access is planned for a
+                  future release once certificate pinning and LAN authentication are implemented.
+                </p>
+              </div>
+            </details>
+
+            <!-- Question 6 -->
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>Can I connect from anywhere?</span>
+                <svg
+                  class="faq-toggle-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  <strong>No.</strong> There is currently no cloud sync, remote relay, or public
+                  internet listener. OmniMemory operates entirely on your local machine. Remote
+                  connectivity is on our future roadmap.
+                </p>
+              </div>
+            </details>
+
+            <!-- Question 7 -->
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>Is the Windows installer ready?</span>
+                <svg
+                  class="faq-toggle-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </summary>
+              <div class="faq-answer">
+                <p>
+                  The packaging pipeline and executable smoke tests are complete in development,
+                  producing the 110.8 MB NSIS installer
+                  (<code>OmniMemory-0.1.0-x64-Setup.exe</code>). However, physical Windows
+                  installation and launch verification are in progress before official public
+                  release binaries are published to mirrors. You can currently build and test the
+                  package locally from source.
+                </p>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <div style="display: flex; align-items: center; gap: 10px">
+              <img
+                src="assets/icon.svg"
+                alt="OmniMemory Logo"
+                class="brand-logo"
+                width="32"
+                height="32"
+              />
+              <span class="brand-name" style="font-size: 1.15rem">OmniMemory</span>
+            </div>
+            <p>
+              Local-first shared memory and coordination engine for AI agents and developers. Built
+              for privacy, transparency, and deterministic execution.
+            </p>
+          </div>
+
+          <div class="footer-col">
+            <h4>Product</h4>
+            <ul class="footer-links">
+              <li><a href="#features" class="footer-link">Features</a></li>
+              <li><a href="#how-it-works" class="footer-link">How It Works</a></li>
+              <li><a href="#privacy" class="footer-link">Privacy &amp; Security</a></li>
+              <li><a href="#status" class="footer-link">Roadmap &amp; Status</a></li>
+              <li><a href="#download" class="footer-link">Download</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h4>Documentation</h4>
+            <ul class="footer-links">
+              <li>
+                <a
+                  href="https://github.com/abhishek-1707/ai-memory/blob/main/docs/ARCHITECTURE.md"
+                  class="footer-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Architecture</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/abhishek-1707/ai-memory/blob/main/docs/DESKTOP.md"
+                  class="footer-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Desktop Guide</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/abhishek-1707/ai-memory/blob/main/docs/MCP.md"
+                  class="footer-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >MCP Protocol</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/abhishek-1707/ai-memory/blob/main/docs/API_AND_MCP.md"
+                  class="footer-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >REST API</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h4>Community</h4>
+            <ul class="footer-links">
+              <li>
+                <a
+                  href="https://github.com/abhishek-1707/ai-memory"
+                  class="footer-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-bind="repo-url"
+                >
+                  GitHub Repository
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/abhishek-1707/ai-memory/issues"
+                  class="footer-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Issue Tracker
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <div>&copy; 2026 OmniMemory. Local-first AI coordination engine.</div>
+          <div>
+            Release <span data-bind="version">v0.1.0</span> &bull; Authoritative SQLite Store
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

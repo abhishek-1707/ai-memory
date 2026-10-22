@@ -133,6 +133,28 @@ The demonstration creates or reuses a synthetic `OmniMemory Demo` project, creat
 memory record, searches it, retrieves it, updates it with optimistic versioning, prints history,
 closes the database, reopens it, and verifies persistence.
 
+## Public website
+
+OmniMemory includes a dedicated, production-ready static marketing website in `site/` that is kept
+strictly isolated from the private authenticated PWA and database.
+
+Preview the public website locally:
+
+```powershell
+npm run site:preview
+```
+
+Open `http://127.0.0.1:4173/` in your browser.
+
+Build and validate the static website distribution:
+
+```powershell
+npm run site:build
+```
+
+The output bundle is exported to `dist-site/`. See `docs/WEBSITE.md` for hosting instructions,
+release publishing, and download URL configuration.
+
 ## Checks
 
 ```powershell
