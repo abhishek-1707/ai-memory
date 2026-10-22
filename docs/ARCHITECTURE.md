@@ -102,3 +102,23 @@ Agents should read the bounded project context before starting work, then create
 with evidence references as work progresses. When transferring work, they should create an immutable
 handoff that names completed work, verified results, blockers, and recommended next steps. A result
 is not described as verified unless the handoff includes supporting results or evidence references.
+
+## Phase 6 implementation
+
+Phase 6 adds a browser-native responsive PWA without adding a second server, database, or auth
+system:
+
+```text
+Browser PWA at 127.0.0.1:3210
+        -> allowlisted static assets
+        -> authenticated /api/v1 REST routes
+        -> AuthService + AccessControlService
+        -> MemoryEngine + TaskTrackingService
+        -> SQLite
+```
+
+The static shell is served from an explicit file allowlist. The browser API client keeps the opaque
+bearer session in memory only and clears it on logout or a 401 response. The service worker caches
+only same-origin static assets and bypasses every `/api/` request, so private memories, tasks,
+handoffs, and credentials are not stored in a shared browser cache. The backend continues to reject
+non-loopback host configuration and cross-origin browser requests.

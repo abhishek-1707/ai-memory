@@ -175,3 +175,24 @@ npm run mcp
 
 Use a local environment variable for `OMNIMEMORY_MCP_TOKEN`; never commit a real token to source
 control. Claude Code setup details are in `docs/MCP.md`.
+
+## Local PWA
+
+The Phase 6 browser client is served by the same loopback API process:
+
+```text
+GET /
+GET /app.js
+GET /api-client.js
+GET /styles.css
+GET /manifest.webmanifest
+GET /sw.js
+GET /icon.svg
+```
+
+These are the only static files exposed by the application. The PWA calls the existing authenticated
+REST routes; it does not introduce browser-only authorization or new data endpoints. The opaque
+session token is held in JavaScript memory only. Logout clears it, and a 401 clears it automatically.
+The service worker bypasses `/api/` and caches only the static shell. Remote device access is not
+supported because the API remains loopback-only. Same-origin requests from the configured loopback
+URL are allowed; foreign origins remain rejected rather than being added to a permissive CORS policy.

@@ -51,3 +51,17 @@ backups are outside this phase.
 - The secret detector remains heuristic.
 - Security audit writes for domain memory mutations occur after the memory-engine transaction; the
   domain activity event remains transactional with the memory write.
+
+## Phase 6 browser controls
+
+- The PWA is served only by the existing loopback-only Fastify process; no LAN or public listener is
+  enabled.
+- The browser client keeps the bearer token in memory and never writes it to localStorage,
+  sessionStorage, URLs, service-worker caches, or committed configuration.
+- Logout clears the in-memory token and private UI state. A 401 response also clears the session.
+- The service worker has an explicit static-asset allowlist and bypasses all `/api/` requests. It does
+  not provide offline writes, private-data caching, or conflict merging.
+- The browser still relies on the REST API for authentication, project authorization, validation,
+  audit logging, and optimistic concurrency. Frontend controls are not security boundaries.
+- Foreign browser origins remain rejected. The exact configured loopback origin and its localhost
+  alias are allowed so same-origin PWA POST requests work without enabling permissive CORS.

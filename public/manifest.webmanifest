@@ -1,0 +1,18 @@
+{
+  "name": "OmniMemory",
+  "short_name": "OmniMemory",
+  "description": "Local-first authorized project memory workspace",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f9fc",
+  "theme_color": "#10233f",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

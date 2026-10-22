@@ -29,6 +29,25 @@ afterEach(async () => {
 });
 
 describe('authenticated REST API', () => {
+  it('serves the local PWA shell without making API routes public', async () => {
+    const testApp = await createTestApp();
+
+    const index = await testApp.app.inject({ method: 'GET', url: '/' });
+    expect(index.statusCode).toBe(200);
+    expect(index.headers['content-type']).toContain('text/html');
+    expect(index.body).toContain('<title>OmniMemory</title>');
+
+    const manifest = await testApp.app.inject({ method: 'GET', url: '/manifest.webmanifest' });
+    expect(manifest.statusCode).toBe(200);
+    expect(manifest.headers['content-type']).toBe('application/manifest+json');
+
+    const projects = await testApp.app.inject({ method: 'GET', url: '/api/v1/projects' });
+    expect(projects.statusCode).toBe(401);
+    expect(projects.json()).toMatchObject({
+      error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+    });
+  });
+
   it('requires setup and authentication before exposing project data', async () => {
     const testApp = await createTestApp();
     const status = await testApp.app.inject({ method: 'GET', url: '/api/v1/auth/setup/status' });
@@ -590,6 +609,29 @@ describe('authenticated REST API', () => {
       payload: { password: 'wrong password', deviceName: 'Bad', deviceType: 'test' },
     });
     expect(limited.statusCode).toBe(429);
+  });
+
+  it('allows the configured same-origin PWA while rejecting a foreign origin', async () => {
+    const testApp = await createTestApp();
+    const sameOrigin = await testApp.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/setup',
+      headers: { origin: 'http://127.0.0.1:3210' },
+      payload: {
+        setupCode: testApp.auth.createSetupCode().code,
+        password: 'correct horse battery staple',
+        deviceName: 'Browser',
+        deviceType: 'browser',
+      },
+    });
+    expect(sameOrigin.statusCode).toBe(201);
+
+    const foreignOrigin = await testApp.app.inject({
+      method: 'GET',
+      url: '/api/v1/health',
+      headers: { origin: 'https://untrusted.example' },
+    });
+    expect(foreignOrigin.statusCode).toBe(403);
   });
 });
 

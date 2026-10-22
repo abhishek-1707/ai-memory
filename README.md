@@ -5,7 +5,8 @@ Phase 3 adds a localhost-only authenticated REST API, owner setup, device enroll
 project permissions, request validation, rate limiting, audit events, and idempotent memory writes.
 Phase 4 adds a local stdio MCP server that reuses the same authentication, authorization, and memory
 services. Phase 5 adds project-scoped tasks, explicit status transitions, and immutable agent handoffs.
-Remote MCP access, mobile UI, backups, and provider integrations remain deferred.
+Phase 6 adds a responsive browser PWA served by the same loopback-only API. Remote MCP access, cloud
+sync, backups, and provider integrations remain deferred.
 
 ## Requirements
 
@@ -60,6 +61,19 @@ The REST contract is documented in `docs/API_AND_MCP.md`. Agents should read pro
 starting work, update task evidence as they proceed, and record an evidence-backed handoff before
 transferring work.
 
+## Open the local PWA
+
+Start the loopback-only API from the repository root, then open:
+
+```text
+http://127.0.0.1:3210/
+```
+
+The PWA uses the existing setup/login endpoints and keeps the bearer session in memory only. It does
+not store credentials, cache API responses, or provide an offline write queue. The service worker
+caches only the static shell. Access from another computer or phone is not supported in this phase;
+the backend remains loopback-only.
+
 ## Start the local MCP server
 
 The MCP server uses the same database and an existing OmniMemory bearer session token. Set the token
@@ -93,13 +107,14 @@ npm test
 npm run demo
 ```
 
-## Scope limits for Phase 5
+## Scope limits for Phase 6
 
 - The REST API is now available on loopback only; it has no remote listener or permissive CORS.
 - The MCP server is available through local stdio only; no remote MCP transport is enabled.
 - Tasks and handoffs are project-scoped; task status transitions are version-protected and handoffs
   are immutable.
-- No remote networking, SSE, PWA, or provider adapter.
+- The PWA is served locally and caches static assets only; private API responses are not cached.
+- No remote networking, SSE, cloud sync, or provider adapter.
 - No embeddings or external AI API calls.
 - Stored content is treated as untrusted text and is never executed.
 - General offline write queues and automatic conflict merging are deferred.

@@ -54,6 +54,7 @@ import {
   taskTransitionSchema,
   taskUpdateSchema,
 } from './validation.js';
+import { registerStaticAssetRoutes, STATIC_ASSET_ROUTES } from './static-assets.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -114,7 +115,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     reply.header('referrer-policy', 'no-referrer');
     reply.header('x-frame-options', 'DENY');
     reply.header('permissions-policy', 'camera=(), microphone=(), geolocation=()');
-    if (request.headers.origin !== undefined) {
+    if (
+      request.headers.origin !== undefined &&
+      !isAllowedBrowserOrigin(request.headers.origin, config)
+    ) {
       throw new AuthorizationError('Cross-origin browser access is disabled');
     }
   });
@@ -172,6 +176,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
     request.identity = authenticateRequest(request, auth);
   });
+
+  registerStaticAssetRoutes(app);
 
   app.get(`${API_PREFIX}/auth/me`, async (request, reply) => {
     const identity = requireIdentity(request);
@@ -613,7 +619,8 @@ function requireIdentity(request: FastifyRequest): AuthenticatedIdentity {
 function isPublicRoute(request: FastifyRequest): boolean {
   return (
     (request.method === 'GET' &&
-      (request.routeOptions.url === `${API_PREFIX}/health` ||
+      (STATIC_ASSET_ROUTES.includes(request.routeOptions.url ?? '') ||
+        request.routeOptions.url === `${API_PREFIX}/health` ||
         request.routeOptions.url === `${API_PREFIX}/auth/setup/status`)) ||
     (request.method === 'POST' &&
       (request.routeOptions.url === `${API_PREFIX}/auth/setup` ||
@@ -720,6 +727,20 @@ function assertLoopbackHost(host: string): void {
   if (host !== '127.0.0.1' && host !== 'localhost' && host !== '::1') {
     throw new ValidationError('Only loopback hosts are allowed in Phase 3');
   }
+}
+
+function isAllowedBrowserOrigin(origin: string, config: AppConfig): boolean {
+  const allowedOrigins = new Set([`http://${config.host}:${config.port}`]);
+  if (config.host === '127.0.0.1') {
+    allowedOrigins.add(`http://localhost:${config.port}`);
+  }
+  if (config.host === 'localhost') {
+    allowedOrigins.add(`http://127.0.0.1:${config.port}`);
+  }
+  if (config.host === '::1') {
+    allowedOrigins.add(`http://[::1]:${config.port}`);
+  }
+  return allowedOrigins.has(origin);
 }
 
 function cryptoRandomId(): string {
