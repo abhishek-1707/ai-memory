@@ -2,8 +2,10 @@
   "name": "omnimemory",
   "version": "0.1.0",
   "private": true,
+  "author": "OmniMemory",
   "description": "Local-first shared memory engine for authorized AI agents",
   "type": "module",
+  "main": "dist/src/electron/main.js",
   "engines": {
     "node": ">=24.0.0"
   },
@@ -18,7 +20,11 @@
     "demo": "tsx scripts/demo.ts",
     "mcp": "tsx scripts/mcp-stdio.ts",
     "start": "tsx src/server.ts",
-    "setup-code": "tsx scripts/create-setup-code.ts"
+    "setup-code": "tsx scripts/create-setup-code.ts",
+    "desktop:dev": "npm run build && electron .",
+    "desktop:build:dir": "npm run build && electron-builder --dir --win --x64",
+    "desktop:build": "npm run build && electron-builder --win --x64",
+    "desktop:smoke": "tsx scripts/desktop-smoke.ts"
   },
   "dependencies": {
     "@fastify/helmet": "^13.2.0",
@@ -31,11 +37,55 @@
     "@eslint/js": "^9.35.0",
     "@modelcontextprotocol/client": "^2.3.1",
     "@types/node": "^24.3.0",
+    "electron": "45.0.0",
+    "electron-builder": "26.15.3",
     "eslint": "^9.35.0",
     "prettier": "^3.6.2",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.43.0",
     "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "com.omnimemory.desktop",
+    "productName": "OmniMemory",
+    "artifactName": "OmniMemory-${version}-${arch}.${ext}",
+    "asar": true,
+    "directories": {
+      "output": "artifacts-v2",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/src/**/*.js",
+      "dist/scripts/mcp-stdio.js",
+      "public/**/*",
+      "package.json",
+      "!dist/**/*.d.ts",
+      "!dist/**/*.map"
+    ],
+    "asarUnpack": [
+      "dist/src/**/*.js",
+      "dist/scripts/mcp-stdio.js",
+      "package.json",
+      "node_modules/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "OmniMemory-${version}-${arch}-Setup.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "deleteAppDataOnUninstall": false
+    }
   }
 }

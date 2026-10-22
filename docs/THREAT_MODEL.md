@@ -65,3 +65,26 @@ backups are outside this phase.
   audit logging, and optimistic concurrency. Frontend controls are not security boundaries.
 - Foreign browser origins remain rejected. The exact configured loopback origin and its localhost
   alias are allowed so same-origin PWA POST requests work without enabling permissive CORS.
+
+## Phase 7 desktop controls
+
+- The Electron main process takes a single-instance lock before starting a backend.
+- The backend is launched as an owned child process and is stopped only through that owned process
+  handle; unrelated Node.js processes are not searched for or terminated.
+- Desktop readiness requires a per-launch startup token sent to the loopback health endpoint. A
+  process already occupying the configured port is not accepted as the desktop backend.
+- The renderer has context isolation, disabled Node integration, sandboxing, restricted navigation,
+  denied new windows, and no preload filesystem or shell bridge.
+- The backend receives `OMNIMEMORY_HOST=127.0.0.1` even if the parent environment requests another
+  host. The desktop does not add CORS or remote listeners.
+- The authoritative database defaults to Electron's per-user `userData` directory, outside the
+  installed binaries. The installer and uninstaller do not delete it, and startup never replaces an
+  existing database.
+
+## Phase 7 residual risks
+
+- A local process running as the same Windows user can inspect or interfere with loopback traffic and
+  the desktop process; the application does not provide OS-level isolation from that user.
+- The Windows installer is unsigned until a release-signing process is added.
+- Database backup, rollback, and recovery remain operational responsibilities; no automatic backup is
+  performed.

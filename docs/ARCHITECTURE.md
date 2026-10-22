@@ -122,3 +122,32 @@ bearer session in memory only and clears it on logout or a 401 response. The ser
 only same-origin static assets and bypasses every `/api/` request, so private memories, tasks,
 handoffs, and credentials are not stored in a shared browser cache. The backend continues to reject
 non-loopback host configuration and cross-origin browser requests.
+
+## Phase 7 implementation
+
+Phase 7 adds a Windows-only Electron shell without replacing the PWA or REST boundary:
+
+```text
+Electron main process
+        -> owned Electron child process
+        -> 127.0.0.1 REST/PWA backend
+        -> AuthService + AccessControlService
+        -> MemoryEngine + TaskTrackingService
+        -> SQLite in Electron app.getPath('userData')
+```
+
+The main process uses a single-instance lock, starts the compiled backend worker, and waits for a
+per-launch startup-token handshake against `/api/v1/health`. A port collision or unrelated loopback
+service cannot be silently adopted by the desktop window. The main process stops only the child
+process it owns.
+
+Electron 45.0.0 is pinned because it embeds a Node 24 runtime compatible with the repository's
+`node:sqlite` requirement. The backend remains separately managed so synchronous SQLite operations
+do not run on the Electron UI event loop. Installed assets are resolved from the packaged app, while
+the writable database defaults to the per-user application-data directory. `OMNIMEMORY_DB_PATH`
+remains an explicit override.
+
+The renderer uses context isolation, disabled Node integration, sandboxing, restricted navigation,
+and no preload bridge. The desktop exposes no filesystem, shell, token, or unrestricted IPC API to
+the PWA. Browser access continues through the same loopback URL and the local stdio MCP entry point
+continues to use the same configured database.

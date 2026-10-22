@@ -133,6 +133,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   app.get(`${API_PREFIX}/health`, async (_request, reply) => {
+    if (config.startupToken !== undefined) {
+      const suppliedToken = _request.headers['x-omnimemory-startup-token'];
+      if (suppliedToken !== config.startupToken) {
+        throw new AuthorizationError('Desktop backend handshake required');
+      }
+    }
     return sendData(reply, { status: 'ok' });
   });
 
@@ -177,7 +183,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     request.identity = authenticateRequest(request, auth);
   });
 
-  registerStaticAssetRoutes(app);
+  registerStaticAssetRoutes(app, config.staticAssetsDirectory);
 
   app.get(`${API_PREFIX}/auth/me`, async (request, reply) => {
     const identity = requireIdentity(request);

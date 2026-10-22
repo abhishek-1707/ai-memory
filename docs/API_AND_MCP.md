@@ -196,3 +196,15 @@ session token is held in JavaScript memory only. Logout clears it, and a 401 cle
 The service worker bypasses `/api/` and caches only the static shell. Remote device access is not
 supported because the API remains loopback-only. Same-origin requests from the configured loopback
 URL are allowed; foreign origins remain rejected rather than being added to a permissive CORS policy.
+
+## Desktop packaging
+
+Phase 7 packages this same server and PWA in an Electron Windows application. The desktop process
+passes an internal `OMNIMEMORY_STARTUP_TOKEN` to its owned backend worker and uses that token only to
+verify `/api/v1/health` during startup. The token is not a user session token and is not exposed to
+the renderer or persisted in the database.
+
+The desktop process also passes `OMNIMEMORY_PUBLIC_DIRECTORY` so static assets are resolved from the
+packaged application rather than `process.cwd()`. The production database defaults to the Electron
+per-user `userData` path; `OMNIMEMORY_DB_PATH` remains an explicit override. These settings do not
+change REST authentication, project authorization, session expiry, audit logging, or MCP behavior.

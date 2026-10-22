@@ -4,6 +4,8 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface AppConfig {
   readonly databasePath: string;
+  readonly staticAssetsDirectory: string;
+  readonly startupToken?: string;
   readonly logLevel: LogLevel;
   readonly host: string;
   readonly port: number;
@@ -29,9 +31,13 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const databasePath = env.OMNIMEMORY_DB_PATH?.trim() || './data/omnimemory.sqlite';
+  const staticAssetsDirectory = env.OMNIMEMORY_PUBLIC_DIRECTORY?.trim() || './public';
+  const startupToken = env.OMNIMEMORY_STARTUP_TOKEN?.trim();
 
   return {
     databasePath: resolve(databasePath),
+    staticAssetsDirectory: resolve(staticAssetsDirectory),
+    ...(startupToken === undefined || startupToken.length === 0 ? {} : { startupToken }),
     logLevel: parseLogLevel(env.OMNIMEMORY_LOG_LEVEL),
     host: env.OMNIMEMORY_HOST?.trim() || '127.0.0.1',
     port: parsePositiveInt(env.OMNIMEMORY_PORT, 3210),

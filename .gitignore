@@ -1,6 +1,10 @@
 node_modules/
 dist/
 coverage/
+release/
+artifacts/
+artifacts-final/
+artifacts-v2/
 data/
 backups/
 backup/

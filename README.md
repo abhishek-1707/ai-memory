@@ -5,8 +5,9 @@ Phase 3 adds a localhost-only authenticated REST API, owner setup, device enroll
 project permissions, request validation, rate limiting, audit events, and idempotent memory writes.
 Phase 4 adds a local stdio MCP server that reuses the same authentication, authorization, and memory
 services. Phase 5 adds project-scoped tasks, explicit status transitions, and immutable agent handoffs.
-Phase 6 adds a responsive browser PWA served by the same loopback-only API. Remote MCP access, cloud
-sync, backups, and provider integrations remain deferred.
+Phase 6 adds a responsive browser PWA served by the same loopback-only API. Phase 7 adds a Windows
+Electron desktop application that manages the same backend and opens the same PWA in an integrated
+window. Remote MCP access, cloud sync, backups, and provider integrations remain deferred.
 
 ## Requirements
 
@@ -74,6 +75,41 @@ not store credentials, cache API responses, or provide an offline write queue. T
 caches only the static shell. Access from another computer or phone is not supported in this phase;
 the backend remains loopback-only.
 
+## Use the Windows desktop application
+
+Phase 7 packages OmniMemory as a per-user Windows Electron application. The desktop main process
+starts the existing Fastify backend as an owned child process, waits for a private readiness
+handshake, and then loads the existing PWA. The renderer has context isolation, no Node.js
+integration, and no filesystem bridge. The backend remains bound to `127.0.0.1`.
+
+The production database defaults to Electron's per-user `app.getPath('userData')` directory, normally
+`%APPDATA%\OmniMemory\omnimemory.sqlite`. The installer never places the authoritative database in
+the installation directory, and uninstall/update does not delete application data. An explicit
+`OMNIMEMORY_DB_PATH` override remains available for controlled procedures.
+
+Build the Windows executable directory and NSIS installer from a Windows development environment:
+
+```powershell
+npm run desktop:build:dir
+npm run desktop:build
+```
+
+The expected artifacts are `artifacts-v2\win-unpacked\OmniMemory.exe` and
+`artifacts-v2\OmniMemory-0.1.0-x64-Setup.exe`. After installing, use **File > Open in Browser** to open
+the same loopback UI in the default browser. The current phase does not support phones, LAN access,
+or remote MCP. See `docs/DESKTOP.md` for data paths, upgrade precautions, and smoke testing.
+
+The packaging build and embedded-runtime smoke checks have been completed in the development
+environment. The actual Windows executable and NSIS installer must still be installed and launched
+on Windows before they are treated as fully validated. Run the Windows-only smoke check after the
+build:
+
+```powershell
+npm run desktop:smoke
+```
+
+This smoke check uses a temporary database and port; it does not modify the authoritative database.
+
 ## Start the local MCP server
 
 The MCP server uses the same database and an existing OmniMemory bearer session token. Set the token
@@ -118,3 +154,14 @@ npm run demo
 - No embeddings or external AI API calls.
 - Stored content is treated as untrusted text and is never executed.
 - General offline write queues and automatic conflict merging are deferred.
+
+## Scope limits for Phase 7
+
+- The desktop package is Windows x64 only and uses the pinned Electron runtime.
+- The desktop backend is loopback-only and rejects foreign browser origins as before.
+- No remote networking, cross-device access, public listener, router configuration, or remote MCP was
+  added.
+- Production data stays in the per-user application-data directory; the installer does not migrate,
+  replace, or delete an existing database automatically.
+- Packaged installer and executable validation requires a Windows launch environment. Do not treat a
+  cross-built artifact as validated until it has been installed and launched outside the repository.

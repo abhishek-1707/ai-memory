@@ -4,8 +4,6 @@ import type { FastifyInstance } from 'fastify';
 
 import { NotFoundError } from '../errors.js';
 
-const PUBLIC_DIRECTORY = join(process.cwd(), 'public');
-
 const STATIC_ASSETS = [
   { route: '/', file: 'index.html', contentType: 'text/html; charset=utf-8' },
   { route: '/app.js', file: 'app.js', contentType: 'application/javascript; charset=utf-8' },
@@ -26,11 +24,11 @@ const STATIC_ASSETS = [
 
 export const STATIC_ASSET_ROUTES: readonly string[] = STATIC_ASSETS.map((asset) => asset.route);
 
-export function registerStaticAssetRoutes(app: FastifyInstance): void {
+export function registerStaticAssetRoutes(app: FastifyInstance, publicDirectory: string): void {
   for (const asset of STATIC_ASSETS) {
     app.get(asset.route, async (_request, reply) => {
       try {
-        const content = await readFile(join(PUBLIC_DIRECTORY, asset.file));
+        const content = await readFile(join(publicDirectory, asset.file));
         return reply.type(asset.contentType).send(content);
       } catch (error) {
         if (isMissingFileError(error)) {
