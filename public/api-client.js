@@ -2,6 +2,9 @@
 
 const SAFE_MESSAGES = {
   UNAUTHORIZED: 'Your session expired. Sign in again.',
+  SETUP_CODE_INVALID: 'The setup code is invalid, expired, or already used.',
+  DESKTOP_BOOTSTRAP_REQUIRED: 'Owner creation must be completed in the OmniMemory desktop app.',
+  PASSWORD_MISMATCH: 'The passwords do not match.',
   FORBIDDEN: 'You do not have permission to do that.',
   NOT_FOUND: 'That record is no longer available.',
   INVALID_REQUEST: 'Check the form and try again.',
@@ -33,6 +36,7 @@ export function createApiClient(baseUrl = '/api/v1') {
     if (token) headers.set('Authorization', `Bearer ${token}`);
 
     let response;
+    const hadToken = token !== null;
     try {
       response = await fetch(`${baseUrl}${path}`, {
         ...options,
@@ -53,7 +57,7 @@ export function createApiClient(baseUrl = '/api/v1') {
     if (!response.ok) {
       const code = typeof payload?.error?.code === 'string' ? payload.error.code : 'INTERNAL_ERROR';
       const error = new ApiError(response.status, code);
-      if (response.status === 401) {
+      if (response.status === 401 && hadToken) {
         token = null;
         onUnauthorized(error);
       }
@@ -66,6 +70,22 @@ export function createApiClient(baseUrl = '/api/v1') {
     get: (path) => request(path),
     post: (path, body, headers = {}) => request(path, { method: 'POST', body, headers }),
     patch: (path, body, headers = {}) => request(path, { method: 'PATCH', body, headers }),
+    async createOwner(body) {
+      const bridge = globalThis.omnimemoryDesktop;
+      if (typeof bridge?.createOwner !== 'function') {
+        throw new ApiError(0, 'DESKTOP_BOOTSTRAP_REQUIRED');
+      }
+      let result;
+      try {
+        result = await bridge.createOwner(body);
+      } catch {
+        throw new ApiError(0, 'NETWORK_ERROR');
+      }
+      if (!result?.ok) {
+        throw new ApiError(result?.status || 500, result?.code || 'INTERNAL_ERROR');
+      }
+      return result.data;
+    },
     setToken(value) {
       token = typeof value === 'string' && value.length > 0 ? value : null;
     },

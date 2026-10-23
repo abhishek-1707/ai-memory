@@ -24,6 +24,12 @@ export const setupBodySchema = z.object({
   deviceType: z.string().trim().min(1).max(50),
 });
 
+export const ownerSetupBodySchema = z.object({
+  password: z.string().min(12).max(200),
+  deviceName: z.string().trim().min(1).max(100),
+  deviceType: z.string().trim().min(1).max(50),
+});
+
 export const loginBodySchema = z.object({
   password: z.string().min(1).max(200),
   deviceName: z.string().trim().min(1).max(100),

@@ -26,9 +26,10 @@ writable Windows directory. The desktop process launches the bundled Electron ex
 `ELECTRON_RUN_AS_NODE=1`, passes the unpacked worker entry point, and waits for the startup-token
 health response before creating the window.
 
-The desktop window uses context isolation, disabled Node.js integration, Electron sandboxing, no
-preload bridge, restricted same-origin navigation, denied new windows and webviews, and a
-single-instance lock.
+The desktop window uses context isolation, disabled Node.js integration, Electron sandboxing, and a
+single-purpose preload bridge used only for owner bootstrap. It also enforces restricted same-origin
+navigation, denied new windows and webviews, and a single-instance lock. The preload bridge does not
+provide filesystem, shell, token, or arbitrary IPC access.
 
 The backend is always forced to `127.0.0.1`. The desktop process generates a per-launch handshake
 token and accepts readiness only from the backend it started. If the configured port is occupied,
@@ -40,9 +41,15 @@ Run the Windows installer produced by `npm run desktop:build` and launch **OmniM
 Start menu or desktop shortcut. The installer is per-user by default and does not require
 administrator access. The uninstaller does not delete the application-data directory.
 
-On first launch, the existing setup screen is shown. Generate a setup code through the documented
-local setup command or an authorized setup workflow, then complete owner setup in the desktop UI.
-No default owner password, setup code, or session token is bundled in the application.
+On first launch with no owner account, the desktop UI shows **Create your OmniMemory account**. The
+user chooses a password, confirms it, and enters the initial device name and type. No setup code is
+displayed or required. The renderer sends the form through a single-purpose context-isolated IPC
+bridge; the Electron main process adds the private per-launch startup token and calls the protected
+loopback bootstrap route. The startup token is never exposed to the renderer or written to logs.
+
+The legacy `npm run setup-code` flow remains only for controlled recovery or development. It is not
+used by normal desktop onboarding. If a database already contains a setup-code row but no owner, the
+desktop bootstrap ignores that legacy row, preserves it, and still creates the owner exactly once.
 
 The same UI remains available in a normal browser at the desktop backend URL, normally:
 
@@ -83,7 +90,8 @@ path.
 
 If startup fails, the desktop window shows a safe error explaining that the loopback port or
 application-data directory may be unavailable. It does not show filesystem paths, setup codes,
-tokens, passwords, or internal exception details.
+tokens, passwords, or internal exception details. Owner-creation failures are shown in the setup form
+as safe validation or current-state messages.
 
 Diagnostics are written to:
 

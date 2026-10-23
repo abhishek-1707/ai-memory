@@ -3,6 +3,7 @@ dist/
 dist-site/
 coverage/
 release/
+installer/
 artifacts/
 artifacts-final/
 artifacts-v2/

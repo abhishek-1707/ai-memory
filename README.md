@@ -39,13 +39,7 @@ The database directory and SQLite files are ignored by Git.
 
 ## Start the local API
 
-Generate the one-time first-run setup code:
-
-```powershell
-npm run setup-code
-```
-
-The code is printed once and only its hash is stored. Start the loopback-only API:
+Start the loopback-only API:
 
 ```powershell
 npm start
@@ -54,9 +48,13 @@ npm start
 The API listens on `http://127.0.0.1:3210` by default. It will not bind to a non-loopback host in
 Phase 3.
 
-Use `POST /api/v1/auth/setup` with the setup code, a password of at least 12 characters, and the
-initial device name/type. The response contains the initial opaque bearer token once. Store it in
-the authorized client; it is never returned again.
+The installed desktop application creates the first owner through its trusted Electron bootstrap
+channel. Choose the password and initial device details in the owner-creation form; no setup code is
+required. The response contains the initial opaque bearer token once, and the desktop renderer keeps
+it in memory only.
+
+The legacy `npm run setup-code` plus `POST /api/v1/auth/setup` path remains available only for
+controlled recovery or development procedures. It is not used by the normal desktop onboarding flow.
 
 The REST contract is documented in `docs/API_AND_MCP.md`. Agents should read project context before
 starting work, update task evidence as they proceed, and record an evidence-backed handoff before
@@ -70,17 +68,19 @@ Start the loopback-only API from the repository root, then open:
 http://127.0.0.1:3210/
 ```
 
-The PWA uses the existing setup/login endpoints and keeps the bearer session in memory only. It does
-not store credentials, cache API responses, or provide an offline write queue. The service worker
-caches only the static shell. Access from another computer or phone is not supported in this phase;
-the backend remains loopback-only.
+The PWA uses the existing login endpoint and keeps the bearer session in memory only. Initial owner
+creation is available from the trusted desktop shell; a normal browser cannot call the protected
+desktop bootstrap operation. The PWA does not store credentials, cache API responses, or provide an
+offline write queue. The service worker caches only the static shell. Access from another computer or
+phone is not supported in this phase; the backend remains loopback-only.
 
 ## Use the Windows desktop application
 
 Phase 7 packages OmniMemory as a per-user Windows Electron application. The desktop main process
 starts the existing Fastify backend as an owned child process, waits for a private readiness
 handshake, and then loads the existing PWA. The renderer has context isolation, no Node.js
-integration, and no filesystem bridge. The backend remains bound to `127.0.0.1`.
+integration, and only a narrow owner-bootstrap bridge; it has no filesystem, shell, token, or
+arbitrary IPC access. The backend remains bound to `127.0.0.1`.
 
 The production database defaults to Electron's per-user `app.getPath('userData')` directory, normally
 `%APPDATA%\OmniMemory\omnimemory.sqlite`. The installer never places the authoritative database in
@@ -91,6 +91,12 @@ The desktop launcher starts the compiled backend from the unpacked packaged reso
 read-only `app.asar` archive directory. It creates and checks the application-data directory before
 launch, then waits for a private startup-token readiness response before opening the dashboard. Safe
 startup diagnostics are written to `%APPDATA%\OmniMemory\logs\desktop.log`.
+
+On a first launch with no owner account, the desktop app shows **Create your OmniMemory account**.
+Choose a password of at least 12 characters, confirm it, and enter the initial device details. The
+renderer calls a narrow Electron IPC operation; the main process adds the private per-launch startup
+token and submits the request to the loopback backend. The startup token is never exposed to the
+renderer or written to diagnostics.
 
 Build the Windows executable directory and NSIS installer from a Windows development environment:
 
@@ -169,6 +175,17 @@ npm run format:check
 npm test
 npm run demo
 ```
+
+## Complete project documentation
+
+The consolidated project guide covers the architecture, data model, authentication, onboarding,
+REST API, PWA, MCP server, desktop runtime, packaging, security model, operations, testing, and
+current limitations:
+
+- [Complete project documentation](docs/OMNIMEMORY_PROJECT_DOCUMENTATION.md)
+- [Downloadable PDF documentation](docs/OMNIMEMORY_PROJECT_DOCUMENTATION.pdf)
+
+The PDF is generated from the Markdown guide and is intended for offline reading or project handoff.
 
 ## Scope limits for Phase 6
 

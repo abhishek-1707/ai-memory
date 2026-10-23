@@ -46,6 +46,13 @@ export interface SetupOwnerInput {
   readonly requestId: string;
 }
 
+export interface OwnerSetupInput {
+  readonly password: string;
+  readonly deviceName: string;
+  readonly deviceType: string;
+  readonly requestId: string;
+}
+
 export interface LoginInput {
   readonly password: string;
   readonly deviceName: string;

@@ -1,7 +1,7 @@
 import { dirname, join } from 'node:path';
 import { spawn } from 'node:child_process';
 
-import { app, BrowserWindow, dialog, Menu, shell, type Event } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell, type Event } from 'electron';
 
 import {
   BackendManager,
@@ -23,6 +23,7 @@ if (!app.requestSingleInstanceLock()) {
   let shutdownPromise: Promise<void> | null = null;
   let startupFailureShown = false;
   let diagnosticsPath: string | undefined;
+  let ownerBootstrapHandlerRegistered = false;
 
   app.on('second-instance', () => {
     if (mainWindow === null) {
@@ -104,6 +105,7 @@ if (!app.requestSingleInstanceLock()) {
       },
     });
     await backend.start();
+    registerOwnerBootstrapHandler(paths.url, paths.startupToken);
     createApplicationMenu(paths.url);
     mainWindow = createMainWindow(paths.url);
     await mainWindow.loadURL(paths.url);
@@ -119,6 +121,7 @@ if (!app.requestSingleInstanceLock()) {
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
+        preload: join(app.getAppPath(), 'dist', 'src', 'electron', 'preload.js'),
         sandbox: true,
         webSecurity: true,
       },
@@ -169,7 +172,55 @@ if (!app.requestSingleInstanceLock()) {
   }
 
   async function stopBackend(): Promise<void> {
+    unregisterOwnerBootstrapHandler();
     await backend?.stop();
+  }
+
+  function registerOwnerBootstrapHandler(url: string, startupToken: string): void {
+    if (ownerBootstrapHandlerRegistered) {
+      return;
+    }
+    ipcMain.handle('omnimemory:create-owner', async (event, input: unknown) => {
+      if (!isTrustedRenderer(event.senderFrame?.url, url)) {
+        return { ok: false, status: 403, code: 'FORBIDDEN' } satisfies BootstrapFailure;
+      }
+
+      try {
+        const response = await fetch(`${url}/api/v1/auth/setup/bootstrap`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-omnimemory-startup-token': startupToken,
+          },
+          body: JSON.stringify(input),
+        });
+        let payload: BootstrapPayload | null = null;
+        try {
+          payload = (await response.json()) as BootstrapPayload;
+        } catch {
+          payload = null;
+        }
+        if (!response.ok) {
+          return {
+            ok: false,
+            status: response.status,
+            code: typeof payload?.error?.code === 'string' ? payload.error.code : 'INTERNAL_ERROR',
+          } satisfies BootstrapFailure;
+        }
+        return { ok: true, data: payload?.data } satisfies BootstrapSuccess;
+      } catch {
+        return { ok: false, status: 0, code: 'NETWORK_ERROR' } satisfies BootstrapFailure;
+      }
+    });
+    ownerBootstrapHandlerRegistered = true;
+  }
+
+  function unregisterOwnerBootstrapHandler(): void {
+    if (!ownerBootstrapHandlerRegistered) {
+      return;
+    }
+    ipcMain.removeHandler('omnimemory:create-owner');
+    ownerBootstrapHandlerRegistered = false;
   }
 
   async function showStartupFailure(category: StartupFailureCategory): Promise<void> {
@@ -195,6 +246,33 @@ if (!app.requestSingleInstanceLock()) {
           ? 'Restart OmniMemory and check the application logs if the problem continues.'
           : `The backend exited with code ${info.code}. Restart OmniMemory and try again.`,
     });
+  }
+}
+
+interface BootstrapSuccess {
+  readonly ok: true;
+  readonly data: unknown;
+}
+
+interface BootstrapPayload {
+  readonly data?: unknown;
+  readonly error?: { readonly code?: unknown };
+}
+
+interface BootstrapFailure {
+  readonly ok: false;
+  readonly status: number;
+  readonly code: string;
+}
+
+function isTrustedRenderer(frameUrl: string | undefined, applicationUrl: string): boolean {
+  if (frameUrl === undefined) {
+    return false;
+  }
+  try {
+    return new URL(frameUrl).origin === new URL(applicationUrl).origin;
+  } catch {
+    return false;
   }
 }
 

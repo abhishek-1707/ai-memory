@@ -221,6 +221,21 @@ describe('desktop backend lifecycle', () => {
 });
 
 describe('packaged static asset configuration', () => {
+  it('exposes only the owner bootstrap operation through the preload bridge', () => {
+    const preload = readFileSync(join(process.cwd(), 'src', 'electron', 'preload.ts'), 'utf8');
+    const main = readFileSync(join(process.cwd(), 'src', 'electron', 'main.ts'), 'utf8');
+
+    expect(preload).toContain('contextBridge.exposeInMainWorld');
+    expect(preload).toContain("'omnimemory:create-owner'");
+    expect(preload).toContain('ipcRenderer.invoke');
+    expect(preload).not.toContain('OMNIMEMORY_STARTUP_TOKEN');
+    expect(main).toContain('/api/v1/auth/setup/bootstrap');
+    expect(main).toContain(
+      "preload: join(app.getAppPath(), 'dist', 'src', 'electron', 'preload.js')",
+    );
+    expect(main).not.toContain('showInitialSetupCode');
+  });
+
   it('serves assets from the configured packaged directory instead of the working directory', async () => {
     const directory = makeTemporaryDirectory();
     const publicDirectory = join(directory, 'public');

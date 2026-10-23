@@ -7,6 +7,7 @@ import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
+  SetupCodeError,
   SetupCompleteError,
   SetupRequiredError,
 } from '../errors.js';
@@ -21,6 +22,7 @@ import type {
   EnrollmentClaimInput,
   EnrollmentRequestInput,
   LoginInput,
+  OwnerSetupInput,
   SetupCode,
   SetupOwnerInput,
   SetupStatus,
@@ -129,7 +131,7 @@ export class AuthService {
 
     if (!validPrecheck) {
       this.recordSetupFailure(input.requestId);
-      throw new AuthenticationError();
+      throw new SetupCodeError();
     }
 
     const passwordHash = await hashPassword(input.password);
@@ -154,7 +156,7 @@ export class AuthService {
         currentCode.failed_attempts < 5 &&
         currentCode.token_hash === tokenHash;
       if (!validCode) {
-        throw new AuthenticationError();
+        throw new SetupCodeError();
       }
 
       this.database
@@ -183,6 +185,41 @@ export class AuthService {
     if (!completed) {
       throw new AuthenticationError();
     }
+    this.logger.info('owner_setup_completed', { deviceId: session.deviceId });
+    return session;
+  }
+
+  public async createOwner(input: OwnerSetupInput): Promise<AuthSession> {
+    const passwordHash = await hashPassword(input.password);
+    const now = this.now();
+    const session = this.newSession(input.deviceName, input.deviceType, 'owner', now);
+
+    runInTransaction(this.database, () => {
+      if (!this.getSetupStatus().setupRequired) {
+        throw new SetupCompleteError();
+      }
+
+      this.database
+        .prepare(
+          "INSERT INTO owner_accounts (id, password_hash, created_at, updated_at) VALUES ('owner', ?, ?, ?)",
+        )
+        .run(passwordHash, now, now);
+      this.insertDevice(session, now);
+      this.insertSession(session, now);
+      insertAuditEvent(
+        this.database,
+        {
+          requestId: input.requestId,
+          action: 'owner_setup',
+          outcome: 'allowed',
+          actorDeviceId: session.deviceId,
+          sessionId: session.sessionId,
+          metadata: { deviceType: input.deviceType },
+        },
+        now,
+      );
+    });
+
     this.logger.info('owner_setup_completed', { deviceId: session.deviceId });
     return session;
   }

@@ -23,7 +23,7 @@ backups are outside this phase.
 | Threat                      | Controls                                                                   | Residual risk                                                                                     |
 | --------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | Unauthorized local process  | Opaque bearer sessions, setup gate, device revocation, project ACLs        | A process with full local-user control can still access the host or inspect the running process   |
-| Password disclosure         | `scrypt`, random salt, no plaintext persistence, generic login errors      | The owner must still protect the local machine and setup code                                     |
+| Password disclosure         | `scrypt`, random salt, no plaintext persistence, generic login errors      | The owner must still protect the local machine and any legacy recovery code                       |
 | Token theft                 | Tokens returned only on creation, hashes stored, no URL tokens, revocation | A stolen active token remains usable until expiry or revocation                                   |
 | Cross-project access        | Membership checks before memory reads, path/project matching, generic 404  | Project metadata is still visible to authorized members of that project                           |
 | Brute-force login           | Fastify rate limits, bounded password length, async scrypt                 | The first implementation uses process-level rate limiting; persistent account lockout is deferred |

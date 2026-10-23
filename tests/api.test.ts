@@ -65,6 +65,133 @@ describe('authenticated REST API', () => {
     expect(auditActions.map((event) => event.action)).toContain('authentication_denied');
   });
 
+  it('creates the first owner through the trusted desktop bootstrap exactly once', async () => {
+    const testApp = await createTestApp({ startupToken: 'desktop-startup-token' });
+
+    const missingStartupToken = await testApp.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/setup/bootstrap',
+      payload: {
+        password: 'correct horse battery staple',
+        deviceName: 'Owner PC',
+        deviceType: 'windows',
+      },
+    });
+    expect(missingStartupToken.statusCode).toBe(403);
+
+    const invalidPassword = await testApp.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/setup/bootstrap',
+      headers: { 'x-omnimemory-startup-token': 'desktop-startup-token' },
+      payload: { password: 'too-short', deviceName: 'Owner PC', deviceType: 'windows' },
+    });
+    expect(invalidPassword.statusCode).toBe(400);
+
+    const first = testApp.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/setup/bootstrap',
+      headers: { 'x-omnimemory-startup-token': 'desktop-startup-token' },
+      payload: {
+        password: 'correct horse battery staple',
+        deviceName: 'Owner PC',
+        deviceType: 'windows',
+      },
+    });
+    const concurrent = testApp.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/setup/bootstrap',
+      headers: { 'x-omnimemory-startup-token': 'desktop-startup-token' },
+      payload: {
+        password: 'another correct horse battery staple',
+        deviceName: 'Second Owner PC',
+        deviceType: 'windows',
+      },
+    });
+    const results = await Promise.all([first, concurrent]);
+    expect(results.map((response) => response.statusCode).sort()).toEqual([201, 409]);
+
+    const success = results.find((response) => response.statusCode === 201);
+    expect(success?.json().data).toMatchObject({ role: 'owner' });
+    const ownerToken = success?.json().data.token as string;
+    const me = await request(testApp.app, 'GET', '/api/v1/auth/me', ownerToken);
+    expect(me.statusCode).toBe(200);
+
+    const owners = testApp.database
+      .prepare("SELECT COUNT(*) AS count FROM owner_accounts WHERE id = 'owner'")
+      .get() as { count: number };
+    const setupCodes = testApp.database
+      .prepare('SELECT COUNT(*) AS count FROM setup_codes')
+      .get() as { count: number };
+    expect(owners.count).toBe(1);
+    expect(setupCodes.count).toBe(0);
+  });
+
+  it('preserves an existing legacy setup-code row while transitioning to owner bootstrap', async () => {
+    const testApp = await createTestApp({ startupToken: 'desktop-startup-token' });
+    const legacyCode = testApp.auth.createSetupCode().code;
+
+    const setup = await testApp.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/setup/bootstrap',
+      headers: { 'x-omnimemory-startup-token': 'desktop-startup-token' },
+      payload: {
+        password: 'correct horse battery staple',
+        deviceName: 'Owner PC',
+        deviceType: 'windows',
+      },
+    });
+    expect(setup.statusCode).toBe(201);
+
+    const storedCode = testApp.database
+      .prepare("SELECT token_hash, consumed_at FROM setup_codes WHERE id = 'initial'")
+      .get() as { token_hash: string; consumed_at: number | null };
+    expect(storedCode.token_hash).toBeTruthy();
+    expect(storedCode.consumed_at).toBeNull();
+
+    const legacyRecovery = await testApp.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/setup',
+      payload: {
+        setupCode: legacyCode,
+        password: 'another correct horse battery staple',
+        deviceName: 'Second Owner PC',
+        deviceType: 'windows',
+      },
+    });
+    expect(legacyRecovery.statusCode).toBe(409);
+    expect(legacyRecovery.json()).toMatchObject({ error: { code: 'SETUP_COMPLETE' } });
+  });
+
+  it('rejects an expired setup code and an expired authenticated session', async () => {
+    const testApp = await createTestApp({
+      setupCodeTtlMs: 1,
+      sessionTtlMs: 1,
+      idleSessionTtlMs: 1,
+    });
+    const expiredSetupCode = testApp.auth.createSetupCode().code;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    const setup = await testApp.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/setup',
+      payload: {
+        setupCode: expiredSetupCode,
+        password: 'correct horse battery staple',
+        deviceName: 'Owner PC',
+        deviceType: 'windows',
+      },
+    });
+    expect(setup.statusCode).toBe(401);
+    expect(setup.json()).toMatchObject({ error: { code: 'SETUP_CODE_INVALID' } });
+
+    const sessionApp = await createTestApp({ sessionTtlMs: 1, idleSessionTtlMs: 1 });
+    const owner = await setupOwner(sessionApp);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const expiredSession = await request(sessionApp.app, 'GET', '/api/v1/auth/me', owner.token);
+    expect(expiredSession.statusCode).toBe(401);
+    expect(expiredSession.json()).toMatchObject({ error: { code: 'UNAUTHORIZED' } });
+  });
+
   it('performs first-run setup, project-scoped memory operations, and safe errors', async () => {
     const testApp = await createTestApp();
     const setupCode = testApp.auth.createSetupCode().code;
@@ -641,10 +768,10 @@ async function createTestApp(config: Partial<AppConfig> = {}): Promise<TestApp> 
   const logger = createLogger('error');
   const app = await buildApp({ database, logger, config });
   const auth = new AuthService(database, logger, {
-    sessionTtlMs: 30 * 24 * 60 * 60 * 1000,
-    idleSessionTtlMs: 24 * 60 * 60 * 1000,
-    enrollmentTtlMs: 10 * 60 * 1000,
-    setupCodeTtlMs: 10 * 60 * 1000,
+    sessionTtlMs: config.sessionTtlMs ?? 30 * 24 * 60 * 60 * 1000,
+    idleSessionTtlMs: config.idleSessionTtlMs ?? 24 * 60 * 60 * 1000,
+    enrollmentTtlMs: config.enrollmentTtlMs ?? 10 * 60 * 1000,
+    setupCodeTtlMs: config.setupCodeTtlMs ?? 10 * 60 * 1000,
   });
   const resource = { app, database, auth, directory };
   resources.push(resource);

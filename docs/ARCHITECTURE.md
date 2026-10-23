@@ -46,8 +46,12 @@ mobile UI and remote access are not implemented yet.
 
 Authentication is owner-first and device-aware:
 
-- `npm run setup-code` creates a short-lived one-time setup code and stores only its hash.
-- `POST /api/v1/auth/setup` creates the single owner account, first owner device, and first session.
+- The desktop owner form calls `POST /api/v1/auth/setup/bootstrap` through a narrow Electron IPC
+  bridge. The Electron main process supplies the private per-launch startup token.
+- The bootstrap route creates the single owner account, first owner device, and first session only
+  while no owner exists.
+- The legacy `npm run setup-code` plus `POST /api/v1/auth/setup` path remains only for controlled
+  recovery or development; it is not used by normal desktop onboarding.
 - Passwords use Node's asynchronous `scrypt` implementation with per-password random salts.
 - Sessions use random opaque bearer tokens; only SHA-256 token hashes are stored.
 - Additional devices use short-lived, single-use enrollment tokens.
@@ -147,7 +151,7 @@ do not run on the Electron UI event loop. Installed assets are resolved from the
 the writable database defaults to the per-user application-data directory. `OMNIMEMORY_DB_PATH`
 remains an explicit override.
 
-The renderer uses context isolation, disabled Node integration, sandboxing, restricted navigation,
-and no preload bridge. The desktop exposes no filesystem, shell, token, or unrestricted IPC API to
-the PWA. Browser access continues through the same loopback URL and the local stdio MCP entry point
-continues to use the same configured database.
+The renderer uses context isolation, disabled Node integration, sandboxing, restricted navigation, and
+a single-purpose preload bridge for owner bootstrap. The desktop exposes no filesystem, shell, startup
+token, or unrestricted IPC API to the PWA. Browser access continues through the same loopback URL and
+the local stdio MCP entry point continues to use the same configured database.

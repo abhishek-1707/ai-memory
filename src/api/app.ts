@@ -14,6 +14,7 @@ import {
   NotFoundError,
   OmniMemoryError,
   RateLimitedError,
+  SetupCodeError,
   SetupCompleteError,
   SetupRequiredError,
   ValidationError,
@@ -48,6 +49,7 @@ import {
   projectParamSchema,
   searchQuerySchema,
   setupBodySchema,
+  ownerSetupBodySchema,
   taskCreateSchema,
   taskListQuerySchema,
   taskParamSchema,
@@ -152,6 +154,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     async (request, reply) => {
       const body = parseRequest(setupBodySchema, request.body);
       const session = await auth.setupOwner({ ...body, requestId: request.id });
+      return sendData(reply, toSessionResponse(session), 201);
+    },
+  );
+
+  app.post(
+    `${API_PREFIX}/auth/setup/bootstrap`,
+    { config: { rateLimit: { max: config.authRateLimitMax, timeWindow: '15 minutes' } } },
+    async (request, reply) => {
+      requireStartupToken(request, config);
+      const body = parseRequest(ownerSetupBodySchema, request.body);
+      const session = await auth.createOwner({ ...body, requestId: request.id });
       return sendData(reply, toSessionResponse(session), 201);
     },
   );
@@ -630,6 +643,7 @@ function isPublicRoute(request: FastifyRequest): boolean {
         request.routeOptions.url === `${API_PREFIX}/auth/setup/status`)) ||
     (request.method === 'POST' &&
       (request.routeOptions.url === `${API_PREFIX}/auth/setup` ||
+        request.routeOptions.url === `${API_PREFIX}/auth/setup/bootstrap` ||
         request.routeOptions.url === `${API_PREFIX}/auth/login` ||
         request.routeOptions.url === `${API_PREFIX}/auth/enrollments/claim`))
   );
@@ -735,6 +749,13 @@ function assertLoopbackHost(host: string): void {
   }
 }
 
+function requireStartupToken(request: FastifyRequest, config: AppConfig): void {
+  const suppliedToken = request.headers['x-omnimemory-startup-token'];
+  if (config.startupToken === undefined || suppliedToken !== config.startupToken) {
+    throw new AuthorizationError('Desktop backend handshake required');
+  }
+}
+
 function isAllowedBrowserOrigin(origin: string, config: AppConfig): boolean {
   const allowedOrigins = new Set([`http://${config.host}:${config.port}`]);
   if (config.host === '127.0.0.1') {
@@ -759,6 +780,13 @@ function mapPublicError(error: unknown): { statusCode: number; code: string; mes
   }
   if (error instanceof AuthenticationError) {
     return { statusCode: 401, code: 'UNAUTHORIZED', message: 'Authentication required' };
+  }
+  if (error instanceof SetupCodeError) {
+    return {
+      statusCode: 401,
+      code: 'SETUP_CODE_INVALID',
+      message: 'The setup code is invalid, expired, or already used',
+    };
   }
   if (error instanceof AuthorizationError) {
     return { statusCode: 403, code: 'FORBIDDEN', message: 'Forbidden' };

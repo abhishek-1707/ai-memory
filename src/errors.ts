@@ -8,7 +8,8 @@ export type ErrorCode =
   | 'FORBIDDEN'
   | 'RATE_LIMITED'
   | 'SETUP_REQUIRED'
-  | 'SETUP_COMPLETE';
+  | 'SETUP_COMPLETE'
+  | 'SETUP_CODE_INVALID';
 
 export class OmniMemoryError extends Error {
   public readonly code: ErrorCode;
@@ -98,6 +99,13 @@ export class SetupCompleteError extends OmniMemoryError {
   public constructor() {
     super('SETUP_COMPLETE', 'Owner setup is already complete');
     this.name = 'SetupCompleteError';
+  }
+}
+
+export class SetupCodeError extends OmniMemoryError {
+  public constructor() {
+    super('SETUP_CODE_INVALID', 'The setup code is invalid, expired, or already used');
+    this.name = 'SetupCodeError';
   }
 }
 

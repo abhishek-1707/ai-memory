@@ -99,7 +99,7 @@ When the Windows desktop installer (`OmniMemory-0.1.0-x64-Setup.exe`) has passed
 
 3. **Validate on Windows**:
    - Install the executable on a clean Windows 10/11 system.
-   - Confirm launch, initial setup code input, database creation in `%APPDATA%\OmniMemory`, and loopback binding.
+   - Confirm launch, owner-account creation in the desktop UI, database creation in `%APPDATA%\OmniMemory`, and loopback binding.
 
 4. **Publish to GitHub Releases**:
    - Create a new release tag (e.g. `v0.1.0`) on GitHub.

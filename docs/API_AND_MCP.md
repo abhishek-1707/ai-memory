@@ -41,6 +41,7 @@ or internal error details.
 ```text
 GET  /api/v1/auth/setup/status
 POST /api/v1/auth/setup
+POST /api/v1/auth/setup/bootstrap
 POST /api/v1/auth/login
 POST /api/v1/auth/password
 POST /api/v1/auth/logout
@@ -57,8 +58,14 @@ Authorization: Bearer <opaque-token>
 
 The raw token is returned only when a session is created. Only its SHA-256 hash is stored.
 
-`npm run setup-code` generates the one-time initial setup code. The API does not manufacture a
-default password or permanent administrator token.
+`POST /api/v1/auth/setup/bootstrap` creates the first owner without a setup code, but it requires the
+private per-launch `x-omnimemory-startup-token` header. Only the Electron main process can call it;
+the renderer reaches it through a narrow context-isolated IPC bridge. The endpoint remains available
+only while no owner exists and returns the initial authenticated session once.
+
+The legacy `npm run setup-code` plus `POST /api/v1/auth/setup` flow is retained only for controlled
+recovery or development. It is not used by normal desktop onboarding. A setup-code row is never
+deleted or reset automatically when the new bootstrap flow creates the owner.
 
 ## Device and permission routes
 
