@@ -1,3 +1,21 @@
+export type BackendStartupFailureCategory =
+  | 'backend_process_start_failed'
+  | 'backend_process_exited'
+  | 'database_initialization_failed'
+  | 'port_occupied'
+  | 'readiness_handshake_failed'
+  | 'startup_timeout';
+
+export class BackendStartupError extends Error {
+  public readonly category: BackendStartupFailureCategory;
+
+  public constructor(category: BackendStartupFailureCategory) {
+    super(category);
+    this.name = 'BackendStartupError';
+    this.category = category;
+  }
+}
+
 export interface BackendChild {
   kill(): boolean;
   readonly stderr?: NodeJS.ReadableStream | null;
@@ -110,16 +128,25 @@ export class BackendManager {
         throw startupFailure(this.exitInfo);
       }
 
-      if (await this.checkHealth()) {
+      const health = await this.checkHealth();
+      if (health === 'ready') {
         this.ready = true;
         return;
+      }
+      if (health === 'port_occupied') {
+        await this.stop();
+        throw new BackendStartupError('port_occupied');
+      }
+      if (health === 'handshake_failed') {
+        await this.stop();
+        throw new BackendStartupError('readiness_handshake_failed');
       }
 
       await delay(this.options.pollIntervalMs);
     }
 
     await this.stop();
-    throw new Error('OmniMemory backend did not become ready before the startup timeout');
+    throw new BackendStartupError('startup_timeout');
   }
 
   public async stop(): Promise<void> {
@@ -137,19 +164,19 @@ export class BackendManager {
     this.ready = false;
   }
 
-  private async checkHealth(): Promise<boolean> {
+  private async checkHealth(): Promise<'ready' | 'waiting' | 'port_occupied' | 'handshake_failed'> {
     const fetchImpl = this.options.fetchImpl ?? defaultFetch;
     try {
       const response = await fetchImpl(this.options.healthUrl, {
         headers: { 'x-omnimemory-startup-token': this.options.startupToken },
       });
-      if (!response.ok || response.status !== 200) {
-        return false;
+      if (response.status !== 200) {
+        return 'port_occupied';
       }
       const payload = await response.json();
-      return isReadyPayload(payload);
+      return isReadyPayload(payload) ? 'ready' : 'handshake_failed';
     } catch {
-      return false;
+      return 'waiting';
     }
   }
 }
@@ -169,14 +196,16 @@ function isReadyPayload(payload: unknown): boolean {
   return typeof data === 'object' && data !== null && 'status' in data && data.status === 'ok';
 }
 
-function startupFailure(info: BackendExitInfo): Error {
+function startupFailure(info: BackendExitInfo): BackendStartupError {
   if (info.error !== undefined) {
-    return new Error('OmniMemory backend failed to start');
+    return new BackendStartupError('backend_process_start_failed');
   }
   if (info.code !== null) {
-    return new Error(`OmniMemory backend exited during startup with code ${info.code}`);
+    return new BackendStartupError(
+      info.code === 2 ? 'database_initialization_failed' : 'backend_process_exited',
+    );
   }
-  return new Error('OmniMemory backend exited during startup');
+  return new BackendStartupError('backend_process_exited');
 }
 
 function delay(milliseconds: number): Promise<void> {

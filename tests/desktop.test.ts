@@ -1,6 +1,6 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -10,7 +10,12 @@ import {
   type BackendChild,
   type BackendForker,
 } from '../src/desktop/backend-manager.js';
-import { buildBackendEnvironment, resolveDesktopRuntimePaths } from '../src/desktop/runtime.js';
+import { writeDesktopDiagnostic } from '../src/desktop/diagnostics.js';
+import {
+  buildBackendEnvironment,
+  ensureDesktopRuntime,
+  resolveDesktopRuntimePaths,
+} from '../src/desktop/runtime.js';
 import { openDatabase } from '../src/database/database.js';
 
 const temporaryDirectories: string[] = [];
@@ -34,9 +39,13 @@ describe('desktop runtime configuration', () => {
       OMNIMEMORY_PORT: '4000',
     });
 
-    expect(paths.databasePath).toBe('/home/tester/.local/share/omnimemory/omnimemory.sqlite');
+    expect(paths.databasePath).toBe(
+      join('/home/tester/.local/share/omnimemory', 'omnimemory.sqlite'),
+    );
     expect(paths.port).toBe(3321);
-    expect(paths.backendEntryPoint).toBe('/opt/omnimemory/dist/src/desktop/backend-worker.js');
+    expect(paths.backendEntryPoint).toBe(
+      join('/opt/omnimemory', 'dist', 'src', 'desktop', 'backend-worker.js'),
+    );
     expect(environment.OMNIMEMORY_HOST).toBe('127.0.0.1');
     expect(environment.OMNIMEMORY_PORT).toBe('3321');
     expect(environment.OMNIMEMORY_DB_PATH).toBe(paths.databasePath);
@@ -52,10 +61,47 @@ describe('desktop runtime configuration', () => {
       env: { OMNIMEMORY_DB_PATH: '/var/lib/omnimemory/custom.sqlite' },
     });
 
-    expect(paths.databasePath).toBe('/var/lib/omnimemory/custom.sqlite');
+    expect(paths.databasePath).toBe(resolve('/var/lib/omnimemory/custom.sqlite'));
     expect(paths.backendEntryPoint).toBe(
-      '/opt/omnimemory/resources/app.asar.unpacked/dist/src/desktop/backend-worker.js',
+      join(
+        '/opt/omnimemory',
+        'resources',
+        'app.asar.unpacked',
+        'dist',
+        'src',
+        'desktop',
+        'backend-worker.js',
+      ),
     );
+  });
+
+  it('prepares packaged paths and writable application data before launch', () => {
+    const directory = makeTemporaryDirectory();
+    const resourcesDirectory = join(directory, 'resources');
+    const backendDirectory = join(
+      resourcesDirectory,
+      'app.asar.unpacked',
+      'dist',
+      'src',
+      'desktop',
+    );
+    const executablePath = join(directory, 'OmniMemory.exe');
+    mkdirSync(backendDirectory, { recursive: true });
+    writeFileSync(join(backendDirectory, 'backend-worker.js'), '');
+    writeFileSync(executablePath, '');
+
+    const paths = resolveDesktopRuntimePaths({
+      appRoot: join(resourcesDirectory, 'app.asar'),
+      userDataDirectory: join(directory, 'user-data'),
+      resourcesDirectory,
+      packaged: true,
+    });
+
+    ensureDesktopRuntime(paths, executablePath);
+
+    expect(paths.backendWorkingDirectory).toBe(join(resourcesDirectory, 'app.asar.unpacked'));
+    expect(existsSync(paths.userDataDirectory)).toBe(true);
+    expect(existsSync(dirname(paths.databasePath))).toBe(true);
   });
 
   it('opens and migrates the production-style database path without overwriting it', () => {
@@ -90,11 +136,10 @@ describe('desktop backend lifecycle', () => {
       fetchImpl: async (_input, init) => {
         expect(init.headers['x-omnimemory-startup-token']).toBe('startup-token');
         healthChecks += 1;
-        return {
-          ok: healthChecks > 1,
-          status: healthChecks > 1 ? 200 : 503,
-          json: async () => ({ data: { status: 'ok' } }),
-        };
+        if (healthChecks === 1) {
+          throw new Error('backend still starting');
+        }
+        return { ok: true, status: 200, json: async () => ({ data: { status: 'ok' } }) };
       },
     });
 
@@ -120,11 +165,11 @@ describe('desktop backend lifecycle', () => {
       pollIntervalMs: 1,
       fetchImpl: async () => {
         child.emitExit(1, null);
-        return { ok: false, status: 503, json: async () => ({}) };
+        throw new Error('backend exited');
       },
     });
 
-    await expect(manager.start()).rejects.toThrow('backend exited during startup');
+    await expect(manager.start()).rejects.toMatchObject({ category: 'backend_process_exited' });
     expect(manager.isReady).toBe(false);
   });
 
@@ -150,9 +195,28 @@ describe('desktop backend lifecycle', () => {
       },
     });
 
-    await expect(manager.start()).rejects.toThrow('did not become ready');
+    await expect(manager.start()).rejects.toMatchObject({ category: 'port_occupied' });
     expect(child.killCalls).toBe(1);
     expect(manager.isReady).toBe(false);
+  });
+
+  it('reports a bounded startup timeout when the port is unreachable', async () => {
+    const child = new FakeBackendChild();
+    const manager = new BackendManager({
+      forker: new FakeBackendForker(child),
+      modulePath: '/opt/omnimemory/backend-worker.js',
+      environment: {},
+      workingDirectory: '/opt/omnimemory',
+      healthUrl: 'http://127.0.0.1:3210/api/v1/health',
+      startupToken: 'desktop-secret',
+      startupTimeoutMs: 10,
+      pollIntervalMs: 1,
+      fetchImpl: async () => {
+        throw new Error('port is not reachable');
+      },
+    });
+
+    await expect(manager.start()).rejects.toMatchObject({ category: 'startup_timeout' });
   });
 });
 
@@ -195,6 +259,19 @@ describe('packaged static asset configuration', () => {
     expect(correctToken.statusCode).toBe(200);
     await app.close();
     database.close();
+  });
+
+  it('redacts startup tokens from desktop diagnostics', () => {
+    const directory = makeTemporaryDirectory();
+    const diagnosticsPath = join(directory, 'logs', 'desktop.log');
+
+    writeDesktopDiagnostic(diagnosticsPath, 'startup_failed', {
+      detail: 'OMNIMEMORY_STARTUP_TOKEN=0123456789abcdef0123456789abcdef',
+    });
+
+    const diagnostics = readFileSync(diagnosticsPath, 'utf8');
+    expect(diagnostics).not.toContain('0123456789abcdef0123456789abcdef');
+    expect(diagnostics).toContain('<redacted>');
   });
 });
 

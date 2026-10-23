@@ -7,9 +7,10 @@ if (process.platform !== 'win32') {
   console.error('DESKTOP_SMOKE_UNAVAILABLE: packaged Windows launch requires Windows');
   process.exitCode = 2;
 } else {
-  const executable = resolve(
-    process.env.OMNIMEMORY_DESKTOP_EXE ?? join('artifacts-v2', 'win-unpacked', 'OmniMemory.exe'),
-  );
+  const defaultExecutable = existsSync(join('artifacts-fixed-2', 'win-unpacked', 'OmniMemory.exe'))
+    ? join('artifacts-fixed-2', 'win-unpacked', 'OmniMemory.exe')
+    : join('artifacts-v2', 'win-unpacked', 'OmniMemory.exe');
+  const executable = resolve(process.env.OMNIMEMORY_DESKTOP_EXE ?? defaultExecutable);
   if (!existsSync(executable)) {
     throw new Error(`Packaged executable not found: ${executable}`);
   }
@@ -32,8 +33,20 @@ if (process.platform !== 'win32') {
     await waitForShell(`http://127.0.0.1:${port}/`);
     console.log(`DESKTOP_SMOKE_OK: ${executable}`);
   } finally {
-    child.kill();
-    rmSync(directory, { recursive: true, force: true });
+    if (child.pid !== undefined) {
+      try {
+        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+      } catch {
+        child.kill();
+      }
+    } else {
+      child.kill();
+    }
+    try {
+      rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 150 });
+    } catch {
+      // Temporary directory cleanup on Windows can tolerate delayed handle release
+    }
   }
 }
 

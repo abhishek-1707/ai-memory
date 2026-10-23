@@ -3,8 +3,17 @@ import { spawn } from 'node:child_process';
 
 import { app, BrowserWindow, dialog, Menu, shell, type Event } from 'electron';
 
-import { BackendManager, type BackendForker } from '../desktop/backend-manager.js';
-import { buildBackendEnvironment, resolveDesktopRuntimePaths } from '../desktop/runtime.js';
+import {
+  BackendManager,
+  type BackendForker,
+  type BackendStartupFailureCategory,
+} from '../desktop/backend-manager.js';
+import { writeDesktopDiagnostic } from '../desktop/diagnostics.js';
+import {
+  buildBackendEnvironment,
+  ensureDesktopRuntime,
+  resolveDesktopRuntimePaths,
+} from '../desktop/runtime.js';
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -13,6 +22,7 @@ if (!app.requestSingleInstanceLock()) {
   let backend: BackendManager | null = null;
   let shutdownPromise: Promise<void> | null = null;
   let startupFailureShown = false;
+  let diagnosticsPath: string | undefined;
 
   app.on('second-instance', () => {
     if (mainWindow === null) {
@@ -45,12 +55,13 @@ if (!app.requestSingleInstanceLock()) {
     try {
       await startApplication();
     } catch (error) {
-      console.error(
-        'desktop_start_failed',
-        error instanceof Error ? `${error.name}: ${error.message}` : 'unknown',
-      );
+      const category = startupFailureCategory(error);
+      console.error('desktop_start_failed', category);
+      if (diagnosticsPath !== undefined) {
+        writeDesktopDiagnostic(diagnosticsPath, 'desktop_start_failed', { category });
+      }
       await stopBackend();
-      await showStartupFailure();
+      await showStartupFailure(category);
       app.exit(1);
     }
   });
@@ -68,17 +79,27 @@ if (!app.requestSingleInstanceLock()) {
       resourcesDirectory: join(dirname(app.getPath('exe')), 'resources'),
       packaged: app.isPackaged,
     });
+    const currentDiagnosticsPath = join(paths.userDataDirectory, 'logs', 'desktop.log');
+    diagnosticsPath = currentDiagnosticsPath;
+    ensureDesktopRuntime(paths, process.execPath);
+    writeDesktopDiagnostic(currentDiagnosticsPath, 'desktop_start_begin', {
+      packaged: app.isPackaged,
+    });
     backend = new BackendManager({
       forker: createBackendForker(),
       modulePath: paths.backendEntryPoint,
       environment: buildBackendEnvironment(paths),
-      workingDirectory: paths.appRoot,
+      workingDirectory: paths.backendWorkingDirectory,
       healthUrl: `${paths.url}/api/v1/health`,
       startupToken: paths.startupToken,
       onExit: (info) => {
         if (shutdownPromise !== null) {
           return;
         }
+        writeDesktopDiagnostic(currentDiagnosticsPath, 'backend_exit', {
+          code: info.code ?? undefined,
+          signal: info.signal ?? undefined,
+        });
         void showUnexpectedBackendExit(info).then(() => requestQuit());
       },
     });
@@ -151,7 +172,7 @@ if (!app.requestSingleInstanceLock()) {
     await backend?.stop();
   }
 
-  async function showStartupFailure(): Promise<void> {
+  async function showStartupFailure(category: StartupFailureCategory): Promise<void> {
     if (startupFailureShown) {
       return;
     }
@@ -160,8 +181,7 @@ if (!app.requestSingleInstanceLock()) {
       type: 'error',
       title: 'OmniMemory could not start',
       message: 'The local OmniMemory backend could not start.',
-      detail:
-        'Check that the configured loopback port is available and that the application data directory is writable.',
+      detail: startupFailureMessage(category),
     });
   }
 
@@ -196,4 +216,46 @@ function createBackendForker(): BackendForker {
       return child;
     },
   };
+}
+
+type StartupFailureCategory =
+  | BackendStartupFailureCategory
+  | 'backend_executable_not_found'
+  | 'backend_entry_point_missing'
+  | 'data_directory_inaccessible'
+  | 'unknown';
+
+function startupFailureCategory(error: unknown): StartupFailureCategory {
+  if (typeof error === 'object' && error !== null && 'category' in error) {
+    const category = error.category;
+    if (typeof category === 'string') {
+      return category as StartupFailureCategory;
+    }
+  }
+  return 'unknown';
+}
+
+function startupFailureMessage(category: StartupFailureCategory): string {
+  switch (category) {
+    case 'backend_executable_not_found':
+      return 'The bundled backend runtime was not found. Reinstall OmniMemory.';
+    case 'backend_entry_point_missing':
+      return 'The bundled backend files are missing. Reinstall OmniMemory.';
+    case 'data_directory_inaccessible':
+      return 'The OmniMemory application-data directory is unavailable or not writable.';
+    case 'port_occupied':
+      return 'The configured loopback port is already used by another service.';
+    case 'database_initialization_failed':
+      return 'The local database could not be opened or migrated. Your existing database was not deleted.';
+    case 'backend_process_exited':
+      return 'The bundled backend process exited during startup.';
+    case 'backend_process_start_failed':
+      return 'The bundled backend process could not be launched.';
+    case 'readiness_handshake_failed':
+      return 'The backend started but did not complete its private readiness handshake.';
+    case 'startup_timeout':
+      return 'The backend did not become ready before the startup timeout.';
+    default:
+      return 'Check the OmniMemory desktop log in the application-data directory for details.';
+  }
 }

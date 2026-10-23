@@ -71,6 +71,9 @@
       "package.json",
       "node_modules/**"
     ],
+    "electronFuses": {
+      "runAsNode": true
+    },
     "win": {
       "target": [
         {

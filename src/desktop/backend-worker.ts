@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 
 import { buildApp } from '../api/app.js';
 import { loadConfig } from '../config.js';
+import { MigrationError } from '../errors.js';
 import { createLogger } from '../logging.js';
 
 export async function runBackend(): Promise<void> {
@@ -41,7 +42,7 @@ export async function runBackend(): Promise<void> {
     if (app !== undefined) {
       await app.close();
     }
-    process.exitCode = 1;
+    process.exitCode = error instanceof MigrationError ? 2 : 1;
   }
 }
 

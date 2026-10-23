@@ -541,9 +541,10 @@
               </div>
               <h3 class="feature-title">Standalone Windows Desktop Shell</h3>
               <p class="feature-desc">
-                Packaged Electron 45 desktop shell managing the backend as an owned child process
-                with a per-launch readiness handshake. Packaged as a Windows x64 NSIS installer
-                (undergoing installation validation).
+                Packaged Electron 45 desktop shell running the backend from unpacked resources with
+                bundled Node runtime and a per-launch readiness handshake. Safe diagnostics are
+                written to %APPDATA%\OmniMemory\logs\desktop.log. Packaged as a Windows x64 NSIS
+                installer (undergoing installation validation).
               </p>
               <div class="feature-tags">
                 <span class="feature-tag">Windows x64</span>
@@ -1271,7 +1272,9 @@ npm run desktop:build</code></pre>
                 <p><code>%APPDATA%\OmniMemory\omnimemory.sqlite</code></p>
                 <p>
                   The database is never placed in the installation folder, and uninstallation does
-                  not delete your memory data.
+                  not delete your memory data. Startup events and safe diagnostics are logged to
+                  <code>%APPDATA%\OmniMemory\logs\desktop.log</code> with tokens and private content
+                  redacted.
                 </p>
               </div>
             </details>

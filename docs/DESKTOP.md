@@ -20,6 +20,12 @@ runtime compatible with this repository's `node >=24.0.0` requirement. The packa
 same compiled services, migrations, REST routes, static asset allowlist, and local stdio MCP entry
 point as development.
 
+The packaged worker is launched from `resources\app.asar.unpacked` rather than using `app.asar` as
+its process working directory. `app.asar` is an archive-backed application path, not a normal
+writable Windows directory. The desktop process launches the bundled Electron executable with
+`ELECTRON_RUN_AS_NODE=1`, passes the unpacked worker entry point, and waits for the startup-token
+health response before creating the window.
+
 The desktop window uses context isolation, disabled Node.js integration, Electron sandboxing, no
 preload bridge, restricted same-origin navigation, denied new windows and webviews, and a
 single-instance lock.
@@ -78,6 +84,15 @@ path.
 If startup fails, the desktop window shows a safe error explaining that the loopback port or
 application-data directory may be unavailable. It does not show filesystem paths, setup codes,
 tokens, passwords, or internal exception details.
+
+Diagnostics are written to:
+
+```text
+%APPDATA%\OmniMemory\logs\desktop.log
+```
+
+Only safe startup categories, exit codes, signals, and lifecycle events are recorded. Startup and
+session tokens are redacted and are never written to the diagnostic file.
 
 ## Build and smoke test
 

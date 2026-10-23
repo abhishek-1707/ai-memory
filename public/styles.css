@@ -1144,3 +1144,46 @@ textarea::placeholder {
     font-weight: 700;
   }
 }
+
+.diagnostics-panel {
+  margin-top: 22px;
+}
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.diagnostics-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+.diagnostics-card strong {
+  font-size: 0.82rem;
+  color: var(--navy);
+}
+.diagnostics-card code {
+  font-size: 0.76rem;
+  color: var(--blue);
+  word-break: break-all;
+  background: var(--blue-soft);
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+.diagnostics-card small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.error-block {
+  padding: 18px 0;
+}
+.error-block code {
+  background: #f1f5f9;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 0.76rem;
+}

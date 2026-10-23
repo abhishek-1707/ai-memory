@@ -6,6 +6,9 @@ release/
 artifacts/
 artifacts-final/
 artifacts-v2/
+artifacts-v3/
+artifacts-fixed/
+artifacts-fixed-2/
 data/
 backups/
 backup/

@@ -87,6 +87,11 @@ The production database defaults to Electron's per-user `app.getPath('userData')
 the installation directory, and uninstall/update does not delete application data. An explicit
 `OMNIMEMORY_DB_PATH` override remains available for controlled procedures.
 
+The desktop launcher starts the compiled backend from the unpacked packaged resources, not from the
+read-only `app.asar` archive directory. It creates and checks the application-data directory before
+launch, then waits for a private startup-token readiness response before opening the dashboard. Safe
+startup diagnostics are written to `%APPDATA%\OmniMemory\logs\desktop.log`.
+
 Build the Windows executable directory and NSIS installer from a Windows development environment:
 
 ```powershell
